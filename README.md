@@ -55,3 +55,7 @@ Versions, title IDs and console status below come from the preserved validation 
 | [Client_Vulkan_Bindings](prosperocraft/Client_Vulkan_Bindings/) | 01.000.008 | PPSA99874 | ALL PASS: user report for all ten PS5 rows, corroborated by current-run GPU/lifecycle/shutdown logs | [7254777e4004](https://github.com/mateo-cogeanu/ProsperoCraft/tree/7254777e4004e10985578186acb0fd98a8a18035/Client_Vulkan_Bindings) |
 | [Server_Bootstrap](prosperocraft/Server_Bootstrap/) | 01.000.002 | PPSA99874 | ALL PASS: human user report | [7254777e4004](https://github.com/mateo-cogeanu/ProsperoCraft/tree/7254777e4004e10985578186acb0fd98a8a18035/Server_Bootstrap) |
 | [Server_Start](prosperocraft/Server_Start/) | 01.000.058 | PPSA99874 | ALL PASS: human user report | [7254777e4004](https://github.com/mateo-cogeanu/ProsperoCraft/tree/7254777e4004e10985578186acb0fd98a8a18035/Server_Start) |
+
+## Documentation history
+
+[ProsperoCraft launcher previews and maintainer narrative, 2026-10-31](documentation-2026-10-31.md) extends the existing `prosperocraft/` archive. It preserves original guides, validation context, instructions and licenses without establishing new console acceptance.

@@ -38744,6 +38744,41 @@
           "Discovery DNS repair"
         ]
       }
+    },
+    {
+      "section": "runtime",
+      "original_path": "Development/java25/lts/probe",
+      "destination": "runtime/Java17_Startup",
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "validation": {
+        "title_id": "PPSA99876",
+        "version": "01.000.002",
+        "tested_date": "2026-11-08",
+        "console": "Physical PS5; firmware not restated for this exact build",
+        "evidence": "Maintainer replied ALL PASS immediately after the standalone Java17 startup002 handoff with four ordered rows. No current-run logs were retrieved in this acceptance turn.",
+        "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+        "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+        "tested_full_package_sha256": "c2241e10bb8c0cb895c7fc02a8490cdd50b2be670e54bc561c90e98c43776c29",
+        "symbols_sha256": "5f2ee9decc06ed8f58e35276d6d837a7590f20cccf2bbc261bbc38a8c280d296",
+        "class_image_sha256": "23ea3fe98cc4530ae41a014c8d7b843dba07fb13db8338ef42af1a44aaa3464b",
+        "results": {
+          "matched_core_constructors": "PASS",
+          "JNI_CreateJavaVM_interpreter_128MiB_max_heap": "PASS",
+          "Java_arithmetic_UTF16_StrictMath_caught_exception": "PASS",
+          "registered_JNI_main_and_worker_thread_join": "PASS",
+          "DestroyJavaVM": "PASS"
+        },
+        "limits": [
+          "User-reported four-row startup pass only; no independently retrieved log or endurance measurement",
+          "C2 is compiled into the VM but this probe uses -Xint and does not validate JIT",
+          "SerialGC small startup workload only; no general GC/performance acceptance",
+          "No Minecraft/mod/shader/controller-game compatibility or Java21 result"
+        ],
+        "release_url": "https://github.com/mateo-cogeanu/ps5-java25-homebrew/releases/tag/Java17_Startup-v01.000.002",
+        "snapshot_repository": "https://github.com/mateo-cogeanu/ps5-homebrew-history",
+        "snapshot_path": "runtime/Java17_Startup"
+      }
     }
   ],
   "files": [
@@ -67394,6 +67429,341 @@
       "sha256": "b0b93fce78edcaaa9915d15b16db7f2a8776ecba15e27ea983fd92d7328e42fb",
       "bytes": 5284,
       "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/THIRD_PARTY_NOTICES.md",
+      "destination": "runtime/Java17_Startup/THIRD_PARTY_NOTICES.md",
+      "sha256": "01ae285e144303d9b2243bc64a35b2807e37fb497fc4fc1b8f00dc226be5ffb1",
+      "bytes": 2048,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/assets/fonts/Inter.ttf",
+      "destination": "runtime/Java17_Startup/assets/fonts/Inter.ttf",
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+      "bytes": 876576,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/assets/fonts/OFL.txt",
+      "destination": "runtime/Java17_Startup/assets/fonts/OFL.txt",
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "bytes": 4377,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/docs/java-lts-runtimes.md",
+      "destination": "runtime/Java17_Startup/docs/java-lts-runtimes.md",
+      "sha256": "faed7d2344ffee8b362c7e4236f5940cbbf6f6778d3a435a655781fbc14658e8",
+      "bytes": 6586,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/docs/java17-startup-probe.md",
+      "destination": "runtime/Java17_Startup/docs/java17-startup-probe.md",
+      "sha256": "d0a89b3067403a09488ab07a2f7e0dc6388af5baed28389d1b0918d003bbcbe4",
+      "bytes": 6275,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/docs/validation/java17-startup-002-build-2026-11-08.json",
+      "destination": "runtime/Java17_Startup/docs/validation/java17-startup-002-build-2026-11-08.json",
+      "sha256": "ba53763ac293de8f1f05dbdb257b1090056379fdef1ce2575cb4725615882d0c",
+      "bytes": 3570,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/java25/lts/17/patches/0001-ps5-bootstrap-build.patch",
+      "destination": "runtime/Java17_Startup/java25/lts/17/patches/0001-ps5-bootstrap-build.patch",
+      "sha256": "9e849ece7e97ccd541a06e096f81759b8350b3605d9556f988c3b41e387c59d7",
+      "bytes": 30205,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/java25/lts/21/patches/0001-ps5-bootstrap-build.patch",
+      "destination": "runtime/Java17_Startup/java25/lts/21/patches/0001-ps5-bootstrap-build.patch",
+      "sha256": "9ca1298c4c764a54a71aa2a5940b96674ca5fdc052f4a84c40ab78287c2c9d73",
+      "bytes": 6534,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/java25/lts/probe/HelloLts.java",
+      "destination": "runtime/Java17_Startup/java25/lts/probe/HelloLts.java",
+      "sha256": "f9d7b36af3cf68c6d3aea48d469401e104076491afa0dec7dbaf5b5492b02c8e",
+      "bytes": 1353,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/java25/lts/probe/jni_checks.hpp",
+      "destination": "runtime/Java17_Startup/java25/lts/probe/jni_checks.hpp",
+      "sha256": "8c59b32acc5af02a973de12f9f71ecf2c2da9b551ee6ddf0441e860010b0b6b4",
+      "bytes": 1578,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/java25/lts/probe/param.json",
+      "destination": "runtime/Java17_Startup/java25/lts/probe/param.json",
+      "sha256": "bd327f916f1eac08316bf0ae58ab12ca460ec54e102f280499d2c5d58cdfb4d2",
+      "bytes": 861,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/java25/lts/probe/startup.cpp",
+      "destination": "runtime/Java17_Startup/java25/lts/probe/startup.cpp",
+      "sha256": "d6f0911e26ff9b0389daf94d3d02ff3fd35b04fac9474103085b3394725e4dd2",
+      "bytes": 6623,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/java25/lts/upstream.json",
+      "destination": "runtime/Java17_Startup/java25/lts/upstream.json",
+      "sha256": "dd0fa3028a17d4f96cf458184d8dd194b0e366f6e1347a85bf18d76132eeda2b",
+      "bytes": 5146,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/native/main.cpp",
+      "destination": "runtime/Java17_Startup/native/main.cpp",
+      "sha256": "0fe7b76acb0dc28a1476932907740db863c241ab51f65aa621eaccfb06255a24",
+      "bytes": 9255,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/native/menu_audio.hpp",
+      "destination": "runtime/Java17_Startup/native/menu_audio.hpp",
+      "sha256": "dc999ecd9d4b1e4fcea1e6e31a40c6b54de33c8c9fa5b68f05e5fef617a6a694",
+      "bytes": 3834,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/native/renderer/demo_renderer.cpp",
+      "destination": "runtime/Java17_Startup/native/renderer/demo_renderer.cpp",
+      "sha256": "a327abb4f3bfc457b6193640ed3721c4a163e2b68352392494e5fd8818b54e1f",
+      "bytes": 24958,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/native/renderer/demo_renderer.hpp",
+      "destination": "runtime/Java17_Startup/native/renderer/demo_renderer.hpp",
+      "sha256": "160107dde8840a783c848ef23c6c1b1307ccd13a37e821586d07297e446824d6",
+      "bytes": 3775,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/native/renderer/presentation_refresh.hpp",
+      "destination": "runtime/Java17_Startup/native/renderer/presentation_refresh.hpp",
+      "sha256": "71ca0d6faae6ac6767f3e8e8ce66f199c67b2da55a7ee982f12058a6a7f26e23",
+      "bytes": 1338,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/native/renderer/tiled_frame_blit.hpp",
+      "destination": "runtime/Java17_Startup/native/renderer/tiled_frame_blit.hpp",
+      "sha256": "5361eb892232890c8ae64883eb1036a30d518d53d1749f92c0e8c7ba1989c7c8",
+      "bytes": 952,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/sce_sys/icon0.png",
+      "destination": "runtime/Java17_Startup/sce_sys/icon0.png",
+      "sha256": "52fb7430adc1e667b35269ad76109997a220ac271992e2ff3c3d223c46608f6a",
+      "bytes": 23764,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/src/main.c",
+      "destination": "runtime/Java17_Startup/src/main.c",
+      "sha256": "8212dfe965520a7d64860605bfc0db4c37783b2a0c7884420c0d8e0b9c5ef984",
+      "bytes": 4715,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/src/pad.h",
+      "destination": "runtime/Java17_Startup/src/pad.h",
+      "sha256": "a19e941ab8430fe1761a6104e5d1186e6b35412201d4ad34316ae355a7b4c732",
+      "bytes": 1392,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/bake_fonts.py",
+      "destination": "runtime/Java17_Startup/tools/bake_fonts.py",
+      "sha256": "9eca0ced71b97abbb321f019990dffa53e07afb51abd91762d921ac6232ee178",
+      "bytes": 1962,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/generate_icon.py",
+      "destination": "runtime/Java17_Startup/tools/generate_icon.py",
+      "sha256": "7293dfcc1615afd2cf0838f0df8436710a8ccec5d055103ed12ca0fbeac95dc5",
+      "bytes": 863,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/java25_cc.py",
+      "destination": "runtime/Java17_Startup/tools/java25_cc.py",
+      "sha256": "27296f041fe7b4bca78c6395fc17025c2c03a540400afaa10e4d76212d028572",
+      "bytes": 739,
+      "git_mode": "100755"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/java25_embedded_hotspot.py",
+      "destination": "runtime/Java17_Startup/tools/java25_embedded_hotspot.py",
+      "sha256": "1ff861254bfcd7157c05f6dd59c3a8dc838a7ae7617b1b6bee643d1c87fdf715",
+      "bytes": 1488,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/java_lts.py",
+      "destination": "runtime/Java17_Startup/tools/java_lts.py",
+      "sha256": "54ca57130864cc0858bdfa17b911d73da66452343393fc719577ddb3888fda20",
+      "bytes": 16876,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/java_lts_resident.py",
+      "destination": "runtime/Java17_Startup/tools/java_lts_resident.py",
+      "sha256": "d35fa204d930fc9e14db9f92a409910248717f7a4002d9ca7dd536ea86fa1bb6",
+      "bytes": 9312,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/package_java_lts_probe.py",
+      "destination": "runtime/Java17_Startup/tools/package_java_lts_probe.py",
+      "sha256": "aae8d40fabe32af3b59cc7990af5e9042f835ea5ba3868e33bf6079ae13904b3",
+      "bytes": 9445,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/package_native.py",
+      "destination": "runtime/Java17_Startup/tools/package_native.py",
+      "sha256": "618eef3c6a01d982bbadf84b053700b6cad489baf165966ffe7ab4db45ac8f15",
+      "bytes": 7587,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/test_java25_signal_context.py",
+      "destination": "runtime/Java17_Startup/tools/test_java25_signal_context.py",
+      "sha256": "db43c5962f580288f4b5d54e21a8a36f4f199235a44e823eee5b5ccef84d2b4e",
+      "bytes": 3708,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/test_java_lts.py",
+      "destination": "runtime/Java17_Startup/tools/test_java_lts.py",
+      "sha256": "0c6c32771b96b0f0a0af6f277ed7fbb9bfd5e86103097a3b17014b1923c0c8c1",
+      "bytes": 3453,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/test_java_lts_image_io.py",
+      "destination": "runtime/Java17_Startup/tools/test_java_lts_image_io.py",
+      "sha256": "9ccbba50b53e7fd563600cac62543a68f9283e675e31fdcf0277417fff1554f6",
+      "bytes": 4617,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/test_java_lts_resident.py",
+      "destination": "runtime/Java17_Startup/tools/test_java_lts_resident.py",
+      "sha256": "ba34fa5633219522f55e28cea389b0e88ba902c692c09ca415eadaf039912c33",
+      "bytes": 4561,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "Development/tools/test_java_lts_startup.py",
+      "destination": "runtime/Java17_Startup/tools/test_java_lts_startup.py",
+      "sha256": "d61cec57b12cb22a3a078460a7c7733f888c89c5728d79ec5d7c010500adc086",
+      "bytes": 3532,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "generated:Java17_Startup/validation.json",
+      "destination": "runtime/Java17_Startup/validation.json",
+      "sha256": "975b1641f44326f95098597d2b631c1087d1bbd1d02289c15942742a0c064cd9",
+      "bytes": 1652,
+      "git_mode": "100644",
+      "provenance": "Generated acceptance/freeze record from user ALL PASS; source commit identifies the tested code"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ps5-java25-homebrew",
+      "source_commit": "d503c8336d1b4e55faf9e4dc5f147ce596d3ab1d",
+      "original_path": "generated:Java17_Startup/README.md",
+      "destination": "runtime/Java17_Startup/README.md",
+      "sha256": "790eb0994327c76aac4aae8672b72dafaf7b19ca3215303f04cd1fa743001b7a",
+      "bytes": 1231,
+      "git_mode": "100644",
+      "provenance": "Generated acceptance/freeze record from user ALL PASS; source commit identifies the tested code"
     }
   ],
   "documentation_migrations": [

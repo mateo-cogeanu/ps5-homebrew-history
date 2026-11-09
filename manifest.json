@@ -38871,6 +38871,31 @@
           "Minecraft title screen and world startup"
         ]
       }
+    },
+    {
+      "section": "prosperocraft",
+      "original_path": "client/java17_bootstrap",
+      "destination": "prosperocraft/Client_Java17_OpenAL",
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "f29833dc7d0e9ebbb5ca00aa038951ff0d117339",
+      "validation": {
+        "title_id": "PPSA99878",
+        "version": "01.000.012",
+        "tested_date": "2026-11-09",
+        "console": "PS5",
+        "evidence": "Maintainer reported pass in response to the exact build 012 graphics and audio test. Tone audibility and the shutdown report were not independently verified.",
+        "results": {
+          "graphics_and_openal_probe": "PASS (user report)"
+        },
+        "sha256": "9942be1469b05c258113014af725bac0265a597f361a1817d841d36c4ad77faf",
+        "consumer_build_commit": "f29833dc7d0e9ebbb5ca00aa038951ff0d117339",
+        "package_file": "PPSA99878.zip",
+        "package_storage": "Local signed ZIP contains original publisher inputs.",
+        "unverified": [
+          "Minecraft title screen",
+          "Minecraft world startup"
+        ]
+      }
     }
   ],
   "files": [
@@ -68440,6 +68465,69 @@
       "destination": "prosperocraft/Client_Java17_Graphics/validation.json",
       "sha256": "9efad54a27c2755b43a99d6379d5fdb2d937af854aa2818ef1fff5857ec41217",
       "bytes": 772,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "f29833dc7d0e9ebbb5ca00aa038951ff0d117339",
+      "original_path": "client/java17_bootstrap/HelloLts.java",
+      "destination": "prosperocraft/Client_Java17_OpenAL/client/java17_bootstrap/HelloLts.java",
+      "sha256": "a477a258f40528b254cdabfb53d1a27d57c4b35726518533210ca3a1132843d3",
+      "bytes": 13314,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "f29833dc7d0e9ebbb5ca00aa038951ff0d117339",
+      "original_path": "client/java17_bootstrap/graphics-pins.json",
+      "destination": "prosperocraft/Client_Java17_OpenAL/client/java17_bootstrap/graphics-pins.json",
+      "sha256": "02095c89b9be773343bd59c4a011a8bc59128cd26326b73f99f7311b9ec80bac",
+      "bytes": 849,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "f29833dc7d0e9ebbb5ca00aa038951ff0d117339",
+      "original_path": "client/java17_bootstrap/param.json",
+      "destination": "prosperocraft/Client_Java17_OpenAL/client/java17_bootstrap/param.json",
+      "sha256": "9d7202eae803fac35f6b5a9eb722eb1b5a7114357f67c56adf57c7dc3c36e856",
+      "bytes": 872,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "f29833dc7d0e9ebbb5ca00aa038951ff0d117339",
+      "original_path": "client/java17_bootstrap/startup.cpp",
+      "destination": "prosperocraft/Client_Java17_OpenAL/client/java17_bootstrap/startup.cpp",
+      "sha256": "ea2c1af49e4a741d36eed2a5cab7540a5d1051c2bf842f652a3465b1b1946079",
+      "bytes": 16572,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "f29833dc7d0e9ebbb5ca00aa038951ff0d117339",
+      "original_path": "tools/package_java17_bootstrap.py",
+      "destination": "prosperocraft/Client_Java17_OpenAL/tools/package_java17_bootstrap.py",
+      "sha256": "31712d0c1aab88a601142a85256a2196868103a08e072d1df0d56f35754d082a",
+      "bytes": 10463,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "b2c60bbd816b884090757b1b491703699645336f",
+      "original_path": "docs/client-java17-bootstrap-012.md",
+      "destination": "prosperocraft/Client_Java17_OpenAL/docs/client-java17-bootstrap-012.md",
+      "sha256": "89b54c7060a519b153d6ba4d9f695df63a75dc30ef709f030f65e4a018d679bf",
+      "bytes": 1405,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "b2c60bbd816b884090757b1b491703699645336f",
+      "original_path": "docs/validation/client-java17-bootstrap-012-console-2026-11-09.json",
+      "destination": "prosperocraft/Client_Java17_OpenAL/validation.json",
+      "sha256": "6b94362a7bc227792b00a9b1685c6c6ec841a769fc33c4dc0209cf2e8c15eeaa",
+      "bytes": 683,
       "git_mode": "100644"
     }
   ],

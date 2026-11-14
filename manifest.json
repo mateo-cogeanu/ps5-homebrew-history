@@ -38896,6 +38896,23 @@
           "Minecraft world startup"
         ]
       }
+    },
+    {
+      "section": "prosperocraft",
+      "original_path": "client/ports/controlify263-keyboard",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard",
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "validation": {
+        "app_version": "01.000.281",
+        "title_id": "PPSA99874",
+        "package_sha256": "ab92eafe8a1569d90a6a6e26339ec29ba69f149f6bd3e4f3567eeb2215c770a9",
+        "date": "2026-11-14",
+        "keyboard": "Maintainer confirmed Controlify keyboard input works on PS5 with Fabric 26.3.",
+        "shaders": "Maintainer confirmed shaders work on PS5.",
+        "opsec_hypixel": "Maintainer reports the Loading Terrain stall did not recur. The original stall has no current-run log.",
+        "authorization": "Maintainer explicitly authorized the GitHub and ProsperoStore release."
+      }
     }
   ],
   "files": [
@@ -68528,6 +68545,150 @@
       "destination": "prosperocraft/Client_Java17_OpenAL/validation.json",
       "sha256": "6b94362a7bc227792b00a9b1685c6c6ec841a769fc33c4dc0209cf2e8c15eeaa",
       "bytes": 683,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "client/ports/controlify263-keyboard/fabric.mod.json",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/client/ports/controlify263-keyboard/fabric.mod.json",
+      "sha256": "aa205e9d9d642cccb85a6a3406e8b88bc84ffef3d91e2192fabb97e9c2e174ea",
+      "bytes": 386,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "client/ports/controlify263-keyboard/java/prosperocraft/controlify/KeyWidgetMixin.java",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/client/ports/controlify263-keyboard/java/prosperocraft/controlify/KeyWidgetMixin.java",
+      "sha256": "9458d44910329377230b9ccb47a6b31305af91904fd63781386e34a2fd814726",
+      "bytes": 840,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "client/ports/controlify263-keyboard/java/prosperocraft/controlify/KeyboardOverlayMixin.java",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/client/ports/controlify263-keyboard/java/prosperocraft/controlify/KeyboardOverlayMixin.java",
+      "sha256": "25a7c3175f56717df4779c8fc103d615b1e33a3bbea4136a185878a3de50d7e2",
+      "bytes": 1943,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "client/ports/controlify263-keyboard/prosperocraft-controlify-keyboard.mixins.json",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/client/ports/controlify263-keyboard/prosperocraft-controlify-keyboard.mixins.json",
+      "sha256": "4273016cb82f4388b4d8f0a1d47785fd55d00c825c308166149bdc905811edcf",
+      "bytes": 216,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "LICENSE",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "bytes": 35149,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "NOTICE",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/NOTICE",
+      "sha256": "d17976ded413ab95705a32642464fa6e9578d175a1ab490651dbcf45d55a0046",
+      "bytes": 4300,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "client/launcher/java/ProsperoControlifyKeyboard.java",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/client/launcher/java/ProsperoControlifyKeyboard.java",
+      "sha256": "a2d7576dacf2139d31e7036d6b81b6d1f64e67072315b47ec2c0f103774c3823",
+      "bytes": 8780,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "client/launcher/java/ProsperoLauncher.java",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/client/launcher/java/ProsperoLauncher.java",
+      "sha256": "c384ab83145a836d8a4a17e84078dae315d2008a207cc4dc035cfa09462abb33",
+      "bytes": 61041,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "tools/build_controlify263_keyboard.py",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/tools/build_controlify263_keyboard.py",
+      "sha256": "6a38f8d6f948bb41874da65433d4f7bffc064d0f8f325162fd761c0f5fbd9b7b",
+      "bytes": 2396,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "tools/package_client_121.py",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/tools/package_client_121.py",
+      "sha256": "7afb0eeb278aacccceae1408559f6e244be1eb085e78aa075103287bfbce0eec",
+      "bytes": 40847,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "tools/audit_client_121.py",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/tools/audit_client_121.py",
+      "sha256": "05222aae0b2fa4956f6c8d233b642ef21aa13a42a36cae52d9bdaae6e6d6ed00",
+      "bytes": 30881,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "docs/client-281-controlify-keyboard.md",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/docs/client-281-controlify-keyboard.md",
+      "sha256": "fa4db990fecbc9d9a36e87cfd418b5532c73f30986be0e327f1285662bcaa5c8",
+      "bytes": 2323,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "docs/validation/client281-controlify-keyboard-2026-11-14.json",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/docs/validation/client281-controlify-keyboard-2026-11-14.json",
+      "sha256": "fdd70cbd361aa3dae041b5c48426accf4f8d53c52e41c0894bf010055fc645f3",
+      "bytes": 1923,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "eb2323aa4661d638d692fbf63c32e056ed8e3aba",
+      "original_path": "docs/validation/client280-http-client-2026-11-13.json",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/docs/validation/client280-http-client-2026-11-13.json",
+      "sha256": "e5795960bc6e3cfa29b89e40573ab48f7cb8ded23f8240f0db1ffbf394012866",
+      "bytes": 2251,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "ad3ef64c8319a4406a24c509053f7e7b15e75017",
+      "original_path": "docs/validation/client281-console-acceptance-2026-11-14.json",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/validation.json",
+      "sha256": "4d37047d7aaa598b0c211c973aee32f965ad52568bbc9730885abce9b7ea45b6",
+      "bytes": 544,
+      "git_mode": "100644"
+    },
+    {
+      "source_repository": "https://github.com/mateo-cogeanu/ProsperoCraft",
+      "source_commit": "ad3ef64c8319a4406a24c509053f7e7b15e75017",
+      "original_path": "sce_sys/param.json",
+      "destination": "prosperocraft/Client_281_Controlify_Keyboard/sce_sys/param.json",
+      "sha256": "1b344d9e5439e3fa8a5893b8b9904d28e643ca11a7e53cabadf96e94afa867b1",
+      "bytes": 851,
       "git_mode": "100644"
     }
   ],

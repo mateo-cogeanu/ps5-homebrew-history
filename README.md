@@ -34,6 +34,7 @@ Versions, title IDs and console status below come from the preserved validation 
 
 | Snapshot | Version | Title ID | Recorded console status | Source commit |
 | --- | --- | --- | --- | --- |
+| [Client_281_Controlify_Keyboard](prosperocraft/Client_281_Controlify_Keyboard/) | 01.000.281 | PPSA99874 | Maintainer confirmed keyboard input and shaders on PS5 | [eb2323aa4661](https://github.com/mateo-cogeanu/ProsperoCraft/tree/eb2323aa4661d638d692fbf63c32e056ed8e3aba) |
 | [Client_Callbacks_OpenAL](prosperocraft/Client_Callbacks_OpenAL/) | 01.000.026 | PPSA99874 | Human ALL5 PASS corroborated by saved session/startup:192 native-to-Java callbacks,3 OpenAL mixer/context lifecycles and DestroyJavaVM | [7254777e4004](https://github.com/mateo-cogeanu/ProsperoCraft/tree/7254777e4004e10985578186acb0fd98a8a18035/Client_Callbacks_OpenAL) |
 | [Client_Continuous_Direct_Scene](prosperocraft/Client_Continuous_Direct_Scene/) | 01.000.023 | PPSA99874 | Human PASS for exact023 after ALL15 and visual pastel/blue/white phase instructions;current-run reports not yet retrieved | [7254777e4004](https://github.com/mateo-cogeanu/ProsperoCraft/tree/7254777e4004e10985578186acb0fd98a8a18035/Client_Continuous_Direct_Scene) |
 | [Client_Direct_Presentation](prosperocraft/Client_Direct_Presentation/) | 01.000.011 | PPSA99874 | PASS: all twelve automatic checks by notification and saved session; human explicitly confirms full-screen pattern by eyes | [7254777e4004](https://github.com/mateo-cogeanu/ProsperoCraft/tree/7254777e4004e10985578186acb0fd98a8a18035/Client_Direct_Presentation) |

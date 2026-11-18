@@ -1,0 +1,773 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+#pragma once
+#ifndef PROSPERO_APP_VERSION
+#define PROSPERO_APP_VERSION "Development"
+#endif
+#include "demo_renderer.hpp"
+#include "palette.hpp"
+#include "branding_logo.hpp"
+#include "instance_icons.hpp"
+#include "login_qr.hpp"
+#include "navigation.hpp"
+#include "page_motion.hpp"
+#include "desktop_input.hpp"
+#include "cursor_shape.hpp"
+#include "haptics.hpp"
+#include "fonts.hpp"
+#ifdef PROSPERO_TOOLKIT
+#include "toolkit_canvas.hpp"
+#endif
+#include <array>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <atomic>
+#include <cmath>
+#include <pthread.h>
+extern "C" int sceKernelUsleep(std::uint32_t);
+extern "C" std::uint64_t sceKernelGetProcessTime();
+extern "C" int scePadSetLightBar(std::int32_t,const void*);
+extern "C" int scePadResetLightBar(std::int32_t);
+extern "C" unsigned ps5DemoPresentationTargetHz() noexcept {return 120;}
+namespace prospero_menu {
+#ifdef PROSPERO_TOOLKIT
+using prospero_ui::Canvas;
+#else
+using ps5::demo::Canvas;
+#endif
+inline std::uint32_t ink(std::uint32_t rgb){return prospero_palette::raw_ink(prospero_palette::rgb(rgb));}
+// Text stays small; only the seven thumbnail slots need larger buffers.
+// Inline aggregate storage preserves constructor-free startup and bounded stacks.
+struct Fields {
+ bool operator==(const Fields&)const noexcept=default;
+ std::array<std::array<char,512>,104> text{};
+ std::array<std::array<char,8192>,7> images{};
+ template<class Char>struct Slot {Char* p;size_t length;Char* data()const noexcept{return p;}size_t size()const noexcept{return length;}Char& operator[](size_t i)const noexcept{return p[i];}};
+ Slot<char> operator[](size_t i)noexcept {if(i>=96&&i<=102)return {images[i-96].data(),8192};return {text[i>=103?i-7:i].data(),512};}
+ Slot<const char> operator[](size_t i)const noexcept {if(i>=96&&i<=102)return {images[i-96].data(),8192};return {text[i>=103?i-7:i].data(),512};}
+};
+// Only the native UI thread draws/reads the controller. JNI stays on the JVM
+// startup thread. A bounded mailbox exchanges public UI text and button edges.
+inline Fields fields{},published{},outgoing_fields{};
+struct SelectorSnapshot {std::array<std::array<char,512>,104> text{};};
+inline SelectorSnapshot selector_base{},selector_parent{};
+inline unsigned selector_depth=0;inline Glide selector_reveal{};
+inline void swap_selector(SelectorSnapshot& other)noexcept{fields.text.swap(other.text);}
+inline void swap_page_fields()noexcept{fields.text.swap(outgoing_fields.text);fields.images.swap(outgoing_fields.images);}
+inline PageTurn page_turn{},card_open{};inline int opening_slot=0;inline bool card_reverse=false;inline Glide list_scroll{},tab_x{},tab_w{};inline bool tabs_ready=false;inline int page_direction=1;inline std::uint64_t page_direction_at=0;inline unsigned trigger_held=0;inline int list_page=-1;
+struct ScrollRow {int index=-1;std::array<char,512> text{};};
+inline std::array<ScrollRow,32> scroll_rows{};
+inline void cache_scroll_rows()noexcept{
+ int page=std::atoi(fields[11].data());if(page!=10&&page!=13)return;
+ if(list_page!=page){list_page=page;for(auto& r:scroll_rows)r.index=-1;list_scroll.snap(float(std::atoi(fields[84].data())));}
+ int first=std::atoi(fields[84].data()),count=std::atoi(fields[83].data()),visible=page==10?8:7;
+ for(int i=-1;i<=visible;i++){int at=first+i;if(at<0||at>=count)continue;auto& r=scroll_rows[at%scroll_rows.size()];r.index=at;std::snprintf(r.text.data(),r.text.size(),"%s",fields[i==-1?107:i==visible?108:85+i].data());}
+}
+inline const char* scroll_text(int index)noexcept{if(index<0)return "";auto& r=scroll_rows[index%scroll_rows.size()];return r.index==index?r.text.data():"";}
+
+inline pthread_mutex_t mailbox=PTHREAD_MUTEX_INITIALIZER;
+inline pthread_t ui_thread{};
+inline unsigned events[64]{},event_read=0,event_write=0;
+inline std::atomic<bool> visible{false},online{false},exit_requested{false},display_done{false},display_ok{false};
+inline int controller=-1;inline Haptics haptics;inline bool pad_connected=false;inline unsigned pad_generation=0;
+inline int pad_light_theme=-1;
+inline bool pad_light_owned=false;
+#ifdef PROSPERO_CHUNK_WORKER_TRIAL
+inline std::atomic<int> chunk_trial_choice{0};
+inline int chunk_trial_focus=3;
+#endif
+inline unsigned updates=0;
+inline DesktopInput desktop{};inline int layout_slide=0;
+inline int pointer_kind=-1,pointer_target=-1,pointer_page=-1;
+inline Navigation navigation{};inline std::uint64_t pressed_at=0;
+inline bool delete_dialog(const Fields& values) noexcept {
+ return std::strcmp(values[11].data(),"9")==0;
+}
+inline void publish(const Fields& values) noexcept {
+ pthread_mutex_lock(&mailbox);
+ if(delete_dialog(published)!=delete_dialog(values))event_read=event_write;
+ published=values;
+ pthread_mutex_unlock(&mailbox);
+}
+inline unsigned take_input() noexcept {
+ pthread_mutex_lock(&mailbox);unsigned value=0;if(event_read!=event_write){value=events[event_read%64];++event_read;}pthread_mutex_unlock(&mailbox);return value;
+}
+inline void discard_input() noexcept {
+ pthread_mutex_lock(&mailbox);event_read=event_write;pthread_mutex_unlock(&mailbox);
+}
+inline void push_input(unsigned value) noexcept {
+ if(!value)return;pthread_mutex_lock(&mailbox);
+ if(delete_dialog(fields)==delete_dialog(published)&&event_write-event_read<64)events[event_write++%64]=value;
+ pthread_mutex_unlock(&mailbox);
+}
+inline void label(Canvas& c,int x,int y,const char* text,unsigned size=24,std::uint32_t rgb=0xeaf0e8){c.label(x,y,text,size,ink(rgb));}
+// Font-independent controller shapes also work in the fallback renderer.
+inline void control_glyph(Canvas& c,int x,int y,std::string_view key,unsigned size,std::uint32_t rgb){
+ int d=int(size)+4;auto dot=[&](int px,int py){c.rectangle(x+px,y+py,2,2,static_cast<ps5::demo::Color>(ink(rgb)));};
+ auto line=[&](int ax,int ay,int bx,int by){int dx=std::abs(bx-ax),dy=-std::abs(by-ay),sx=ax<bx?1:-1,sy=ay<by?1:-1,err=dx+dy;for(;;){dot(ax,ay);if(ax==bx&&ay==by)break;int e=2*err;if(e>=dy){err+=dy;ax+=sx;}if(e<=dx){err+=dx;ay+=sy;}}};
+ if(key=="X"){line(5,5,d-5,d-5);line(d-5,5,5,d-5);}
+ else if(key=="TRIANGLE"){line(d/2,3,3,d-3);line(3,d-3,d-3,d-3);line(d-3,d-3,d/2,3);}
+ else if(key=="SQUARE"){line(4,4,d-4,4);line(d-4,4,d-4,d-4);line(d-4,d-4,4,d-4);line(4,d-4,4,4);}
+ else if(key=="CIRCLE"){int r=d/2-3;for(int yy=-r;yy<=r;yy++)for(int xx=-r;xx<=r;xx++){int a=xx*xx+yy*yy;if(a<=r*r&&a>=(r-2)*(r-2))dot(d/2+xx,d/2+yy);}}
+ else {unsigned w=Canvas::text_width(key,size-4)+14;c.rounded(x,y,w,d,6,ink(0x355c48));c.label(x+7,y+4,key,size-4,ink(rgb));}
+}
+inline void control_label(Canvas& c,int x,int y,std::string_view text,unsigned size=24,std::uint32_t rgb=0xa9c6b2){
+ const std::string_view keys[]={"TRIANGLE","CIRCLE","SQUARE","OPTIONS","L1","R1","L2","R2","L3","R3","X"};
+ while(!text.empty()){
+  std::string_view match;for(auto k:keys)if(text.starts_with(k)&&(text.size()==k.size()||text[k.size()]==' '||text[k.size()]=='/')){match=k;break;}
+  if(!match.empty()){control_glyph(c,x,y,match,size,rgb);x+=int(match.size()>2&&match!="TRIANGLE"&&match!="CIRCLE"&&match!="SQUARE"?Canvas::text_width(match,size-4)+22:size+13);text.remove_prefix(match.size());}
+  else {size_t n=1;while(n<text.size()&&text[n-1]!=' ')n++;auto part=text.substr(0,n);c.label(x,y,part,size,ink(rgb));x+=int(Canvas::text_width(part,size));text.remove_prefix(n);}
+ }
+}
+inline void wrap(Canvas& c,int x,int y,std::string_view text,unsigned width,int lines=3){
+ while(!text.empty()&&lines-->0){std::size_t n=text.size();while(n>0&&Canvas::text_width(text.substr(0,n),24)>width)--n;if(!n)break;
+  if(n<text.size()){auto space=text.substr(0,n).find_last_of(' ');if(space!=std::string_view::npos&&space>0)n=space;}
+  c.label(x,y,text.substr(0,n),24,ink(0xaac0b6));text.remove_prefix(n);while(!text.empty()&&text.front()==' ')text.remove_prefix(1);y+=34;
+ }
+}
+inline void card(Canvas& c,int x,int y,unsigned w,unsigned h,bool focus=false){c.rounded(x,y,w,h,24,ink(focus?0xa9eab6:0x294138));c.rounded(x+2,y+2,w-4,h-4,22,ink(0x13271f));}
+inline void title(Canvas& c,int x,int y,const char* text,unsigned size=30,unsigned width=1000,std::uint32_t color=0xeaf0e8){
+ std::string_view value(text);if(Canvas::text_width(value,size)>width){while(!value.empty()&&Canvas::text_width(value,size)+Canvas::text_width("...",size)>width)value.remove_suffix(1);c.label(x,y,value,size,ink(color));c.label(x+Canvas::text_width(value,size),y,"...",size,ink(color));}else label(c,x,y,text,size,color);
+}
+struct TextOrigin {int x,y;};
+inline TextOrigin centered_text(int x,int y,int width,int height,std::string_view text,unsigned size){
+#ifdef PROSPERO_TOOLKIT
+ const auto& font=*(size>=30?prospero_ui::surface->fonts.semibold.font:prospero_ui::surface->fonts.regular.font);
+ std::vector<hui::gfx::GlyphQuad> glyphs; font.layout(text,0,0,float(size),hui::gfx::Align::left,glyphs);
+ float left=0,right=0,top=0,bottom=0;bool first=true;
+ for(const auto& g:glyphs){if(first){left=g.x0;right=g.x1;top=g.y0;bottom=g.y1;first=false;}else{left=std::min(left,g.x0);right=std::max(right,g.x1);top=std::min(top,g.y0);bottom=std::max(bottom,g.y1);}}
+ return {int(std::lround(x+(width-(right-left))/2-left)),int(std::lround(y+(height-(bottom-top))/2-top-font.ascent(float(size))))};
+#else
+ const auto& font=ui_font::get(size);int pen=0,left=0,right=0,top=0,bottom=0;bool inked=false;
+ for(unsigned char ch:text){const auto& glyph=font.glyphs[(ch>=32&&ch<=126?ch:'?')-32];if(glyph.w>0&&glyph.h>0){int l=pen+glyph.x,r=l+glyph.w,t=glyph.y,b=t+glyph.h;if(!inked){left=l;right=r;top=t;bottom=b;inked=true;}else{if(l<left)left=l;if(r>right)right=r;if(t<top)top=t;if(b>bottom)bottom=b;}}pen+=glyph.advance;}
+ return {x+(width-(right-left))/2-left,y+(height-(bottom-top))/2-top};
+#endif
+}
+inline int number(int index){return std::atoi(fields[index].data());}
+inline void block(Canvas& c,int x,int y,int size,int kind){
+#ifdef PROSPERO_TOOLKIT
+ c.instance_icon(x,y,size,kind);return;
+#endif
+ unsigned index=kind>=0&&unsigned(kind)<prospero_icons::count?unsigned(kind):0;
+ for(int yy=0;yy<72;yy++)for(int xx=0;xx<72;xx++){auto color=prospero_icons::pixels[index][yy*72+xx];if(color>>24)c.rectangle(x+xx*size/72,y+yy*size/72,(size+71)/72,(size+71)/72,static_cast<ps5::demo::Color>(color));}
+}
+inline void content_icon(Canvas& c,int x,int y,int size,const char* pixels){
+ if(std::strlen(pixels)!=6144){c.rounded(x,y,size,size,8,ink(0x294038));c.rounded(x+size/5,y+size/5,size*3/5,size*3/5,5,ink(0x50675c));return;}
+ auto hex=[](char a)->int{return a>='0'&&a<='9'?a-'0':a>='a'&&a<='f'?a-'a'+10:0;};
+ for(int yy=0;yy<32;yy++)for(int xx=0;xx<32;xx++){const char* p=pixels+(yy*32+xx)*6;unsigned color=0;for(int n=0;n<6;n++)color=(color<<4)|hex(p[n]);c.rectangle(x+xx*size/32,y+yy*size/32,(size+31)/32,(size+31)/32,static_cast<ps5::demo::Color>(ink(color)));}
+}
+struct Focus {float x=0,y=0,w=0,h=0;bool initialized=false;};
+inline Focus focus{};inline std::uint64_t transition_start=0,last_draw_time=0,component_motion_until=0;inline bool animating=false;
+inline std::uint64_t now_ms(){return sceKernelGetProcessTime()/1000;}
+inline void selection(Canvas& c,int x,int y,int w,int h){
+#ifdef PROSPERO_TOOLKIT
+ if(prospero_ui::outgoing)return;
+#endif
+ const bool reduced=std::strcmp(fields[30].data(),"ON")==0;
+ if(!focus.initialized||reduced){focus={float(x),float(y),float(w),float(h),true};}
+ #ifdef PROSPERO_TOOLKIT
+ static hui::tween::Spring springs[4];float targets[]={float(x),float(y),float(w),float(h)};
+ float* values[]={&focus.x,&focus.y,&focus.w,&focus.h};
+ for(int i=0;i<4;i++){if(reduced||*values[i]==targets[i])springs[i].snap(targets[i]);springs[i].target=targets[i];springs[i].update(prospero_ui::dt,22);*values[i]=springs[i].value;}
+#else
+ const float rate=reduced?1.0f:0.34f;focus.x+=(x-focus.x)*rate;focus.y+=(y-focus.y)*rate;focus.w+=(w-focus.w)*rate;focus.h+=(h-focus.h)*rate;
+#endif
+ auto distance=[](float a,float b){return a>b?a-b:b-a;};if(distance(focus.x,float(x))+distance(focus.y,float(y))+distance(focus.w,float(w))+distance(focus.h,float(h))>1.0f)animating=true;
+ else focus={float(x),float(y),float(w),float(h),true};
+ const bool press=std::strcmp(fields[30].data(),"ON")!=0&&pressed_at&&now_ms()-pressed_at<110;
+ if(press)animating=true;
+ const int inset=press?2:0;
+#ifdef PROSPERO_TOOLKIT
+ c.ring(int(focus.x)+inset,int(focus.y)+inset,int(focus.w)-inset*2,int(focus.h)-inset*2);
+#else
+ c.rounded(int(focus.x)-4+inset,int(focus.y)-4+inset,unsigned(focus.w)+8-inset*2,unsigned(focus.h)+8-inset*2,22,ink(press?0xe0ffe4:0xa9eab6));
+#endif
+}
+inline void action(Canvas& c,int x,int y,int w,const char* text,bool active,bool primary=false){
+#ifdef PROSPERO_TOOLKIT
+ const bool press=active&&pressed_at&&now_ms()-pressed_at<110;
+ if(active)selection(c,x,y,w,76);c.button(x,y,w,76,text,active,primary,press);if(press)animating=true;
+ // Continue refreshing while the component's own focus and press springs settle.
+ if(now_ms()<component_motion_until)animating=true;
+ return;
+#endif
+ if(active)selection(c,x,y,w,76);c.rounded(x,y,w,76,18,ink(primary?0xb6f2be:0x244438));label(c,x+28,y+22,text,30,primary?0x102c1b:0xeaf0e8);
+}
+inline void row_control(Canvas& c,int y,const char* name,const char* value,bool active,bool editable=true,int height=96){
+ if(active)selection(c,760,y,1080,height);
+#ifdef PROSPERO_TOOLKIT
+ c.control(760,y,1080,height,active,std::strcmp(fields[30].data(),"ON")!=0&&pressed_at&&now_ms()-pressed_at<110);
+#else
+ c.rounded(760,y,1080,height,20,ink(active?0x1e3c30:0x142b24));
+#endif
+ label(c,792,y+(height-96)/2+16,name,24,0x8fae9d);title(c,792,y+(height-96)/2+47,value,30,960);if(editable){
+#ifdef PROSPERO_TOOLKIT
+ bool toggle=std::strcmp(name,"REDUCED MOTION")==0||std::strcmp(name,"SHOW SNAPSHOTS")==0||std::strcmp(name,"STARTUP NOTICE")==0;
+ if(toggle)c.toggle(std::strcmp(name,"REDUCED MOTION")==0?0:std::strcmp(name,"SHOW SNAPSHOTS")==0?1:2,1728,y+(height-40)/2,std::strcmp(value,"ON")==0,active);
+ else
+#endif
+ label(c,1779,y+43,">",30,0xa9eab6);
+ }
+}
+inline void player_head(Canvas& c,int x,int y,int size){
+ // Center the unchanged face in its own theme-colored tile, with no outline.
+ const int padding=std::max(10,size/6);
+ c.rounded(x-padding,y-padding,size+2*padding,size+2*padding,padding,ink(0x729b83));
+ const char* hex=fields[80].data();if(std::strlen(hex)!=384){c.rounded(x,y,size,size,6,ink(0x568b72));label(c,x+size/4,y+size/5,"?",unsigned(size/2),0xeaf0e8);return;}
+ for(int py=0;py<8;py++)for(int px=0;px<8;px++){char rgb[7]{};std::memcpy(rgb,hex+(py*8+px)*6,6);c.rectangle(x+px*size/8,y+py*size/8,(size+7)/8,(size+7)/8,static_cast<ps5::demo::Color>(prospero_palette::raw_ink(unsigned(std::strtoul(rgb,nullptr,16)))));}
+}
+inline void login_qr(Canvas& c,int x,int y,int scale){c.rounded(x,y,prospero_qr::size*scale,prospero_qr::size*scale,0,ink(0xffffff));for(int py=0;py<prospero_qr::size;py++)for(int px=0;px<prospero_qr::size;px++)if(prospero_qr::modules[py*prospero_qr::size+px]=='1')c.rectangle(x+px*scale,y+py*scale,scale,scale,static_cast<ps5::demo::Color>(ink(0x000000)));}
+inline void selector_surface(Canvas& c,int x,int y,int w,int h)noexcept{
+#ifdef PROSPERO_TOOLKIT
+ (void)c;auto& list=prospero_ui::surface->list;list.shadow({float(x),float(y+8),float(w),float(h)},22,24,prospero_ui::themed(0,0.25f));list.rounded_rect({float(x),float(y),float(w),float(h)},22,prospero_ui::themed(0x10251d,1.0f));list.bordered_rect({float(x),float(y),float(w),float(h)},22,prospero_ui::themed(0,0),1,prospero_ui::themed(0xb6f2d4,0.18f));
+#else
+ c.rounded(x,y,unsigned(w),unsigned(h),22,ink(0x10251d));
+#endif
+}
+inline SelectionMenu menu_layout()noexcept{
+ bool icons=number(11)==10&&(number(93)==1||number(93)==2);float widest=0;
+ for(int i=0;i<8;i++)widest=std::max(widest,float(Canvas::text_width(fields[85+i].data(),28)));
+ widest=std::max(widest,float(Canvas::text_width(fields[109].data(),28)));
+ return selection_menu(number(83),number(11)==10?8:7,widest,float(Canvas::text_width(fields[82].data(),36)),icons);
+}
+inline void scrolling_list(Canvas& c,bool dropdown) noexcept {
+ int first=number(84),count=number(83),row=number(15);auto menu=menu_layout();int visible=menu.visible,pitch=menu.pitch;float base=menu.first_y(),position=float(first);
+ selector_surface(c,int(menu.x),int(menu.y-68),int(menu.w),int(menu.h+68));title(c,int(menu.x+16),int(menu.y-60),fields[82].data(),36,unsigned(menu.w-32));
+#ifdef PROSPERO_TOOLKIT
+ if(!prospero_ui::outgoing){cache_scroll_rows();list_scroll.to(float(first),now_ms(),prospero_ui::reduced);position=list_scroll.value(now_ms());if(list_scroll.moving(now_ms()))animating=true;}
+ auto& list=prospero_ui::surface->list;list.push_clip({menu.x+8,base-8,menu.w-16,float(visible*pitch)+16});
+#endif
+ int begin=std::max(0,int(std::floor(position))),end=std::min(count,int(std::ceil(position))+visible);
+ for(int index=begin;index<end;index++){
+  const char* text=scroll_text(index);
+#ifdef PROSPERO_TOOLKIT
+  if(prospero_ui::outgoing)text=index>=first&&index<first+visible?fields[85+index-first].data():"";
+#endif
+  int yy=int(base+(index-position)*pitch);bool icon=dropdown&&(number(93)==1||number(93)==2);
+  if(index==row)selection(c,int(menu.x+24),yy,int(menu.w-48),56);
+  if(icon)block(c,int(menu.x+28),yy+6,44,index);
+  title(c,int(menu.x+(icon?88:40)),yy+14,text,28,unsigned(menu.w-(icon?128:80)));
+ }
+#ifdef PROSPERO_TOOLKIT
+ list.pop_clip();c.scrollbar(menu.x+menu.w-12,base,float(visible*pitch),position,visible,count);
+#endif
+}
+
+inline void icon_selector(Canvas& c)noexcept{int count=std::min(number(83),int(prospero_icons::count)),selected=number(15);auto grid=icon_grid(count);selector_surface(c,int(grid.x),int(grid.y-68),int(grid.w),int(grid.h+68));title(c,int(grid.x+16),int(grid.y-60),fields[82].data(),36,unsigned(grid.w-32));for(int i=0;i<count;i++){int x=int(grid.x)+24+i%8*128,y=int(grid.y)+24+i/8*128;if(i==selected)selection(c,x+6,y+6,116,116);block(c,x+16,y+16,96,i);}}
+inline void compose_content(Canvas& c) noexcept {
+ const int page=number(11),row=number(15),selected=number(9),tab=number(12),slide=0;
+ const bool top=std::strcmp(fields[28].data(),"TOP")==0;const bool signed_in=fields[81][0]&&std::strcmp(fields[5].data(),"Not signed in")!=0;(void)tab;(void)selected;(void)top;
+ if(page==0){
+  label(c,70,192+slide,"Instances",64);
+  [[maybe_unused]] const int count=number(13),start=number(14);
+#ifdef PROSPERO_TOOLKIT
+   c.library(fields,slide);
+
+#else
+   for(int i=0;i<8&&start+i<count;i++){int x=70+(i%4)*450,y=342+(i/4)*272+slide,at=32+i*4;bool active=!top&&selected==start+i;if(active)selection(c,x,y,420,242);c.rounded(x,y,420,242,22,ink(active?0x1f3a2b:0x13291f));if(std::strcmp(fields[at+3].data(),"ADD")==0){c.rounded(x+184,y+118,52,6,3,ink(0xb6f2be));c.rounded(x+207,y+95,6,52,3,ink(0xb6f2be));}else{block(c,x+27,y+26,88,number(at+2));title(c,x+26,y+137,fields[at].data(),30,365);label(c,x+27,y+187,fields[at+1].data(),24,0x92b6a0);label(c,x+235,y+187,fields[at+3].data(),24,0xa7d4ae);}}
+#endif
+ }else if(page==1||page==5){
+  label(c,70,185+slide,page==1?"Create instance":"Instance settings",64);
+  c.rounded(70,338+slide,620,548,28,ink(0x10221c));block(c,275,402+slide,204,page==1?number(24):number(18));title(c,105,690+slide,page==1?fields[22].data():fields[16].data(),42,540);label(c,108,761+slide,"JAVA EDITION / INSTANCE",24,0x8db69a);
+  if(page==1){row_control(c,320+slide,"VERSION",fields[23].data(),row==0);row_control(c,430+slide,"LOADER",fields[82].data(),row==1,true);row_control(c,540+slide,"NAME",fields[22].data(),row==2);row_control(c,650+slide,"ICON","Choose instance icon",row==3);action(c,760,774+slide,1080,"CREATE & DOWNLOAD",row==4,true);wrap(c,790,884+slide,fields[70].data(),1000,1);}
+  else{row_control(c,310+slide,"INSTANCE NAME",fields[16].data(),row==0);row_control(c,420+slide,"INSTANCE ICON","Choose instance icon",row==1);action(c,760,535+slide,520,"MODS",row==2);action(c,1320,535+slide,520,"SHADERS",row==3);action(c,760,630+slide,520,"RESOURCE PACKS",row==4);action(c,1320,630+slide,520,"DUPLICATE INSTANCE",row==7);action(c,760,820+slide,520,"DONE",row==5,true);action(c,1320,820+slide,520,"DELETE INSTANCE",row==6);action(c,760,725+slide,1080,"BROWSER UPLOADS",row==8);}
+ }else if(page==15){
+  label(c,70,185,"Browser management",54);title(c,75,265,fields[16].data(),30,1700);
+  label(c,75,345,fields[107].data(),30,0xa9eab6);
+  if(fields[108][0]){
+   const char* matrix=fields[102].data();int size=std::atoi(matrix);const char* bits=std::strchr(matrix,':');
+   if(bits&&size>=21&&size<=85&&std::strlen(bits+1)==size_t(size*size)){++bits;int scale=std::min(8,440/size);c.rectangle(75,410,size*scale,size*scale,static_cast<ps5::demo::Color>(prospero_palette::raw_ink(0xffffff)));for(int y=0;y<size;y++)for(int x=0;x<size;x++)if(bits[y*size+x]=='1')c.rectangle(75+x*scale,410+y*scale,scale,scale,static_cast<ps5::demo::Color>(prospero_palette::raw_ink(0)));}
+   label(c,640,390,"PAIRING CODE",24,0xa9eab6);title(c,640,440,fields[109].data(),72,1160);
+   wrap(c,640,555,"Scan the QR or open the address below. Enter the code on your phone or computer.",1140,2);
+   wrap(c,640,635,"Use the same local network. Keep this screen open.",1140,1);
+   label(c,640,715,"BROWSER ADDRESS",24,0xa9eab6);title(c,640,760,fields[108].data(),36,1150);
+   const char* separator=std::strchr(fields[110].data(),'/');if(separator&&std::atoi(separator+1)>1){label(c,640,840,"LEFT / RIGHT  Choose network address",24);label(c,1600,840,fields[110].data(),24);}
+  }else wrap(c,75,470,"No usable address yet. Check the PS5 network. Close and reopen this screen to retry the service.",1600,3);
+
+ }else if(page==14){
+  title(c,70,225,fields[82].data(),64,1750);content_icon(c,85,365,96,fields[96].data());title(c,220,385,fields[85].data(),36,1550);wrap(c,85,515,fields[70].data(),1640,3);
+  action(c,760,740,520,"CANCEL",row==0,true);action(c,1320,740,520,"UNINSTALL",row==1);
+ }else if(page==13){
+  scrolling_list(c,false);
+ }else if(page==12){
+  title(c,70,185,fields[82].data(),64,1500);title(c,75,270,fields[70].data(),24,1770,0x91ad9b);
+  action(c,70,325,1010,fields[92].data(),row==0,true);char queue[80];std::snprintf(queue,sizeof(queue),"DOWNLOAD ALL (%s)",fields[91].data());action(c,1120,325,720,queue,row==1,true);
+  action(c,70,435,330,"PREVIOUS",row==2);action(c,430,435,330,"NEXT",row==3);char count[100];std::snprintf(count,sizeof(count),"%d / %s results",number(84),fields[83].data());if(std::strcmp(fields[82].data(),"Shaders")==0)action(c,800,435,470,fields[95].data(),row==11);else label(c,800,461,count,24,0x91ad9b);action(c,1320,435,520,std::strcmp(fields[103].data(),"INSTALLED")==0?"BROWSE":"INSTALLED",row==10);
+  for(int i=0;i<number(93)&&i<4;i++){int y=535+i*92;if(row==i+4)selection(c,70,y,1770,86);
+#ifdef PROSPERO_TOOLKIT
+   c.control(70,y,1770,86,row==i+4,std::strcmp(fields[30].data(),"ON")!=0&&pressed_at&&now_ms()-pressed_at<110);
+#else
+   c.rounded(70,y,1770,86,12,ink(row==i+4?0x1e3c30:0x10251d));
+#endif
+   bool installed=std::strncmp(fields[85+i].data(),"[I]",3)==0,checked=installed||std::strncmp(fields[85+i].data(),"[X]",3)==0;
+#ifdef PROSPERO_TOOLKIT
+   c.toggle(4+i,82,y+23,checked,row==i+4,true);
+#else
+   c.rounded(82,y+23,40,40,8,ink(0x8fae9d));c.rounded(85,y+26,34,34,5,ink(0x142e23));if(checked){for(int n=0;n<9;n++)c.rectangle(90+n,y+42+n,5,5,static_cast<ps5::demo::Color>(ink(0xb6f2be)));for(int n=0;n<18;n++)c.rectangle(98+n,y+50-n,5,5,static_cast<ps5::demo::Color>(ink(0xb6f2be)));}
+#endif
+   content_icon(c,139,y+7,72,fields[96+i].data());const char* text=fields[85+i].data();if(std::strlen(text)>=4)text+=4;bool local_view=std::strcmp(fields[103].data(),"INSTALLED")==0;title(c,235,y+31,text,24,local_view?1210:installed?1350:1570);
+   if(local_view){
+#ifdef PROSPERO_TOOLKIT
+    if(row==20+i)selection(c,1500,y+18,320,51);c.button(1500,y+18,320,51,"UNINSTALL",row==20+i,false,std::strcmp(fields[30].data(),"ON")!=0&&pressed_at&&now_ms()-pressed_at<110);
+#else
+    if(row==20+i)selection(c,1500,y+18,320,51);c.rounded(1500,y+18,320,51,12,ink(0x284538));label(c,1570,y+31,"UNINSTALL",24);
+#endif
+   }else if(installed)label(c,1640,y+31,"INSTALLED",18,0xa9eab6);}
+
+ }else if(page==2){
+  label(c,70,185+slide,"Settings",64);
+  c.rounded(70,340+slide,620,548,28,ink(0x10221c));label(c,112,391+slide,"YOUR SETUP",24,0x8fbb9b);label(c,112,459+slide,"Game settings",42);wrap(c,114,545+slide,"Choose your game window size. The pointer uses logical coordinates; the native display reports its actual framebuffer size. Video and audio options stay with each instance.",520,5);label(c,114,714+slide,"SQUARE  Change background",24,0xa9eab6);title(c,114,753+slide,fields[76][0]?fields[76].data():"Waves",30,510);label(c,114,804+slide,std::strcmp(fields[79].data(),"OFF")==0?"TRIANGLE  Vibration: OFF":"TRIANGLE  Vibration: ON",24,0xa9eab6);title(c,114,851+slide,fields[67].data(),18,510,0x83a58d);
+  const char* themes[]={"Forest","Ocean","Amethyst","Rose","Amber","Graphite"};
+  const char* names[]={"GAME RESOLUTION","PARALLEL DOWNLOADS","REDUCED MOTION","SHOW SNAPSHOTS","STARTUP NOTICE","INPUT & CONTROLLER KEYBINDS","COLOR THEME"};
+  const char* values[]={fields[25].data(),fields[26].data(),fields[30].data(),fields[27].data(),fields[68].data(),"Configure controls",themes[prospero_palette::selected]};
+  for(int i=0;i<7;i++)row_control(c,300+i*96+slide,names[i],values[i],row==i,true,86);
+ }else if(page==3){
+  const bool local_profile=std::strcmp(fields[5].data(),"Offline profile")==0;
+  const bool local_available=std::strcmp(fields[71].data(),"LOCAL")==0;
+  label(c,70,185+slide,"Accounts",64);label(c,75,270+slide,"Choose a Microsoft account or a local offline profile.",24,0x91ad9b);
+  c.rounded(70,340+slide,1000,548,28,ink(0x10221c));label(c,116,391+slide,local_profile?"OFFLINE PROFILE":"MICROSOFT ACCOUNT",24,0x8fbb9b);title(c,116,447+slide,local_profile?fields[81].data():fields[5].data(),42,750);if(signed_in&&!local_profile)player_head(c,929,389+slide,96);
+  if(fields[3][0]){login_qr(c,747,514+slide,7);label(c,116,539+slide,"ENTER THIS CODE",24,0x8eaf9a);label(c,115,584+slide,fields[3].data(),64,0xc9f5cd);wrap(c,117,699+slide,"https://www.microsoft.com/link",600,2);}
+  else wrap(c,117,547+slide,local_profile
+      ?"Download and play singleplayer or join servers configured for offline mode. Changing your offline username creates a different player identity."
+      :"Microsoft sign-in provides your owned Java profile and access to authenticated servers. You can also create an offline profile with a username.",850,5);
+  action(c,1140,366+slide,700,local_profile?"USE MICROSOFT ACCOUNT":signed_in?"SIGN OUT":"SIGN IN WITH MICROSOFT",row==0,true);
+  if(local_available){
+   action(c,1140,466+slide,700,fields[72][0]?"USE OFFLINE PROFILE":"CREATE OFFLINE PROFILE",row==1,false);
+   action(c,1140,566+slide,700,"EDIT OFFLINE USERNAME",row==2,false);
+  }
+  wrap(c,1167,690+slide,fields[2].data(),620,4);
+ }else if(page==4){
+  title(c,70,185+slide,fields[16].data(),64,1770);
+  c.rounded(70,330+slide,620,560,28,ink(0x10221c));block(c,245,385+slide,270,number(18));
+  title(c,109,721+slide,fields[17].data(),42,540);
+  label(c,768,441+slide,std::strcmp(fields[69].data(),"DEVELOPMENT")==0?"DEVELOPMENT TEST":std::strcmp(fields[69].data(),"PENDING")==0?"COMING SOON":"JAVA EDITION",24,0x94b69f);
+  const char* actions[]={fields[6].data(),"INSTANCE SETTINGS","REPAIR DOWNLOAD","PLAY OFFLINE"};
+  int y=505;for(int i=0;i<4;i++){if(i==3&&std::strcmp(fields[71].data(),"OFFLINE")!=0)continue;action(c,760,y+slide,1080,actions[i],row==i,i==0&&std::strcmp(fields[69].data(),"PENDING")!=0);y+=100;}
+  if(y<920)wrap(c,790,y+8+slide,fields[65].data(),1000,1);
+ }else if(page==10){
+  if(number(93)==1||number(93)==2)icon_selector(c);else scrolling_list(c,true);
+ }else if(page==9){
+#ifdef PROSPERO_TOOLKIT
+  c.confirm(fields[16].data(),row);
+#else
+  label(c,70,185+slide,"Delete this instance?",64);c.rounded(70,330+slide,1770,548,28,ink(0x10221c));
+  title(c,116,390+slide,fields[16].data(),48,1600);wrap(c,118,490+slide,"Permanently delete this instance, including every world and its settings? This cannot be undone. Shared downloads are kept.",1560,3);
+  action(c,116,710+slide,780,"NO",row==0,true);action(c,970,710+slide,780,"YES, DELETE",row==1,std::strcmp(fields[64].data(),"BUSY")!=0);
+#endif
+ }else if(page==8||page==11){
+  const bool essentials=page==11;int section=essentials?0:number(74);
+  label(c,70,190,essentials?"Basic controls":"Controller guide",64);
+  const char* sections[]={"MOVEMENT & ACTIONS","INVENTORY & MENUS","TEXT KEYBOARD","WORLD SHORTCUTS","TOUCHPAD SHORTCUTS"};
+  label(c,78,291,essentials?"THE ESSENTIALS":sections[std::clamp(section,0,4)],30,0xa9eab6);
+  const char* basic[]={"Left stick   Move", "Right stick   Look", "X   Jump", "R2   Mine / attack", "L2   Use / place", "OPTIONS   Pause"};
+  const char* world[]={"Left stick   Move / L3   Sprint", "Right stick   Look / OPTIONS   Pause", "X   Jump / CIRCLE   Sneak", "R2   Mine or attack / L2   Use or place", "L1 / R1   Change hotbar slot", "TRIANGLE   Inventory"};
+  const char* menus[]={"Right stick   Move pointer", "X / R2   Left click / L2   Right click", "R3   Middle click", "SQUARE + click   Quick move", "L1 / R1   Scroll / CIRCLE   Back", "Cursor only   Select / L3   Text keyboard"};
+  const char* typing[]={"D-PAD / left stick   Choose a key", "X   Type / R1   Space", "L1 / TRIANGLE   Delete", "R2   Change case / L2   Symbols", "OPTIONS   Enter and close", "CIRCLE / L3   Close / touchpad + R3   Toggle"};
+  const char* shortcuts[]={"SQUARE   Swap hands", "D-PAD DOWN   Drop item", "D-PAD UP   Player list", "D-PAD LEFT / RIGHT   Hotbar slot 1 / 9", "R3   Change camera", "Hold touchpad + R3   Pick block"};
+  const char* touchpad[]={"Hold touchpad + TRIANGLE   Chat", "Hold touchpad + SQUARE   Command", "Hold touchpad + X   Enter / CIRCLE   Backspace", "Hold touchpad + LEFT   HUD / RIGHT   Screenshot", "Hold touchpad + UP   Debug / DOWN   Advancements", "Hold touchpad + OPTIONS   Fullscreen"};
+  const char** lines=essentials?basic:section==0?world:section==1?menus:section==2?typing:section==3?shortcuts:touchpad;
+  for(int i=0;i<6;i++){int x=78+(i/3)*900,y=382+(i%3)*122;c.rounded(x-4,y-18,850,96,20,ink(0x10251d));control_label(c,x+26,y+12,lines[i],essentials?30:24);}
+  if(essentials){
+   control_label(c,78,760,"L3 Text keyboard in menus     OPTIONS Full controls",24,0x94b69f);
+   action(c,78,850,330,std::strcmp(fields[95].data(),"READY")==0?"OK":"PREPARING...",row==1,true);
+   if(row==0)selection(c,470,850,610,76);c.rounded(470,850,610,76,18,ink(0x142e23));
+#ifdef PROSPERO_TOOLKIT
+   c.toggle(3,490,868,std::strcmp(fields[94].data(),"OFF")==0,row==0,true);
+#else
+   label(c,490,871,std::strcmp(fields[94].data(),"OFF")==0?"[X]":"[ ]",30);
+#endif
+   label(c,555,872,"Don't show again",30);
+  }else{char counter[48];std::snprintf(counter,sizeof(counter),"%d / 5",section+1);label(c,1740,850,counter,30,0x94b69f);action(c,78,825,700,"PREVIOUS SECTION",false);action(c,1050,825,700,"NEXT SECTION",false);}
+ }else if(page==7){
+  c.rounded(170,190,1580,745,32,ink(0x142e23));
+  label(c,235,240,"Getting started",64);
+  wrap(c,240,347,"Create an instance to choose a Minecraft version, loader, name and icon.",1390,3);
+  wrap(c,240,468,"Choose a Microsoft account or an offline profile, download 26.3, then choose PLAY. Your account, worlds and verified downloads are saved for future launches.",1390,3);
+  wrap(c,240,570,"Use the shoulder buttons to explore Instances, Settings and your account. Press OPTIONS for the controller guide. All 26.x releases and snapshots are available to download; 26.2 and 26.3 Vanilla and Fabric are supported, alongside snapshots 1-6.",1390,5);
+  action(c,240,773,330,"OK",row==1,true);
+  if(row==0)selection(c,680,773,430,76);
+  c.rounded(680,773,430,76,18,ink(0x142e23));
+#ifdef PROSPERO_TOOLKIT
+  c.toggle(3,704,791,std::strcmp(fields[68].data(),"ON")==0,row==0,true);
+#else
+  c.rounded(704,791,40,40,8,ink(row==0?0xe0ffe4:0x8fae9d));
+  c.rounded(707,794,34,34,5,ink(0x142e23));
+  if(std::strcmp(fields[68].data(),"ON")==0){
+   // A two-stroke tick at TV scale; independent of font glyph support.
+   for(int i=0;i<9;++i)c.rectangle(712+i,810+i,5,5,static_cast<ps5::demo::Color>(ink(0xb6f2be)));
+   for(int i=0;i<18;++i)c.rectangle(720+i,818-i,5,5,static_cast<ps5::demo::Color>(ink(0xb6f2be)));
+  }
+#endif
+  label(c,766,795,"Show next time",30);
+ }else if(page==6){
+  label(c,70,185,fields[106].data(),64);c.rounded(70,300,1770,116,22,ink(0x183c2a));title(c,103,330,fields[29].data(),42,1650);
+  if(std::strcmp(fields[106].data(),"Offline username")==0)label(c,103,426,"1-16 letters, numbers or underscores",24,0x91ad9b);
+  const char* chars=std::strcmp(fields[66].data(),"LOWER")==0?"1234567890qwertyuiopasdfghjkl_zxcvbnm .-":"1234567890QWERTYUIOPASDFGHJKL_ZXCVBNM .-";int chosen=number(31);
+  bool physical=std::strcmp(fields[105].data(),"PHYSICAL")==0;
+  if(physical)wrap(c,103,470,"Type on your keyboard. Enter confirms; Esc cancels. Use the controller to show its keyboard again.",1560,3);
+  if(!physical)for(int i=0;i<40;i++){int x=80+(i%10)*176,y=465+(i/10)*91;if(i==chosen)selection(c,x,y,152,73);c.rounded(x,y,152,73,16,ink(i==chosen?0x356647:0x172e24));char letter[2]={chars[i],0};label(c,x+61,y+21,letter,30);}
+  const char* edits[]={"BACKSPACE","SPACE","CASE","CANCEL","DONE"};for(int i=0;i<5;i++)if(!physical||i>=3)action(c,70+i*360,855,330,edits[i],chosen==40+i,i==4);
+ }
+}
+inline Glide library_bar{};
+inline void runtime_footer(Canvas& c){
+ constexpr auto credit="Powered by a native Java runtime";
+ label(c,1840-int(Canvas::text_width(credit,16)),1055,credit,16,0x718d7b);
+}
+inline void compose_library_progress(Canvas& c) noexcept {
+ const auto now=now_ms();
+ const bool reduced=std::strcmp(fields[30].data(),"ON")==0;
+ const bool determinate=std::strcmp(fields[21].data(),"MEASURED")==0;
+ const int percent=std::clamp(number(20),0,1000);
+ c.rounded(430,337,1060,352,32,ink(0x10251d));
+ label(c,490,391,"PROSPEROCRAFT  /  LIBRARY",24,0x9bc8a9);
+ title(c,490,449,fields[2].data(),46,940);
+ if(fields[7][0])label(c,490,507,"Your library only needs to move once.",24,0xaac8b2);
+ constexpr int x=490,y=550,width=940,height=18;
+ c.rounded(x,y,width,height,9,ink(0x233c2c));
+ if(determinate){
+  if(percent<library_bar.target)library_bar.snap(0);
+  library_bar.to(float(percent),now,reduced);
+  int fill=int(width*library_bar.value(now)/1000);
+  if(fill>0)c.rounded(x,y,unsigned(fill),height,unsigned(std::min(9,fill/2)),ink(0xa9eab6));
+  animating=library_bar.moving(now);
+  char text[12];
+  std::snprintf(text,sizeof(text),"%d%%",percent/10);
+  label(c,1350,604,text,27,0xa9eab6);
+ }else{
+  library_bar.snap(0);
+  constexpr int segment=204;
+  const float cycle=float(now%2400)/2400.f;
+  const float position=reduced?0.5f:0.5f-0.5f*std::cos(cycle*6.2831853f);
+  c.rounded(x+int((width-segment)*position),y,segment,height,9,ink(0xa9eab6));
+  animating=!reduced;
+ }
+ if(fields[7][0])control_label(c,490,605,fields[7].data(),24,0xaac8b2);
+ label(c,1650,1020,PROSPERO_APP_VERSION,24,0x7d9f89);
+ runtime_footer(c);
+}
+inline void compose(Canvas& c) noexcept {
+ animating=false;last_draw_time=now_ms();prospero_palette::selected=std::clamp(number(104),0,5);
+#ifdef PROSPERO_TOOLKIT
+ c.context(fields,pressed_at);
+#endif
+ c.gradient(ink(0x0b1815),ink(0x08120f));c.disc(1760,850,380,ink(0x0c211a));
+#ifdef PROSPERO_CHUNK_WORKER_TRIAL
+ if(chunk_trial_choice.load(std::memory_order_acquire)==0){
+  c.rounded(360,275,1200,500,28,ink(0x10221c));
+  label(c,420,330,"Chunk generation test",56);
+  label(c,423,427,"Choose the background workers for this session.",26,0xaac8b2);
+  action(c,420,520,510,"3 workers  /  Baseline",chunk_trial_focus==3,true);
+  action(c,990,520,510,"5 workers  /  Candidate",chunk_trial_focus==5,true);
+  control_label(c,423,674,"LEFT / RIGHT Choose     X Start launcher",22,0xaac8b2);
+  label(c,1650,1020,PROSPERO_APP_VERSION,24,0x7d9f89);
+  return;
+ }
+#endif
+ if(std::strcmp(fields[8].data(),"PREPARING")==0){compose_library_progress(c);return;}
+ const int page=number(11),tab=number(12);const bool top=std::strcmp(fields[28].data(),"TOP")==0;
+ float elapsed=float(now_ms()-transition_start)/180.0f;if(elapsed<0)elapsed=0;if(elapsed>1)elapsed=1;
+ const int slide=0;layout_slide=0;(void)slide;(void)elapsed;
+ c.rounded(40,32,1840,108,24,ink(0x10221c));block(c,66,53,64,0);label(c,149,66,"ProsperoCraft",30);
+ const bool signed_in=fields[81][0]&&std::strcmp(fields[5].data(),"Not signed in")!=0;
+ const char* tabs[]={"Instances","Settings",signed_in?fields[81].data():"Accounts"};const int tx[]={865,1245,1555},tw[]={350,280,280};
+ for(int i=0;i<3;i++){
+  const bool current=tab==i,account=i==2&&signed_in;
+  const int name_width=tw[i]-(account?68:0);
+  if(current&&top)selection(c,tx[i],52,tw[i],68);
+  c.rounded(tx[i],52,name_width,68,18,ink(current?0x53885c:0x14251e));
+  auto text=centered_text(tx[i],52,name_width,68,tabs[i],i==2?24:30);
+  if(account)text.x=std::max(tx[i]+16,text.x);
+  title(c,text.x,text.y,tabs[i],i==2?24:30,account?name_width-32:tw[i]-45,current?0xc7f4cf:0xb0c4b5);
+
+  if(account)player_head(c,tx[i]+tw[i]-51,66,40);
+ }
+ bool reduced=std::strcmp(fields[30].data(),"ON")==0;int active_tab=std::clamp(tab,0,2);
+ if(!tabs_ready){tab_x.snap(float(tx[active_tab]+24));tab_w.snap(float(tw[active_tab]-48));tabs_ready=true;}
+ tab_x.to(float(tx[active_tab]+24),now_ms(),reduced);tab_w.to(float(tw[active_tab]-48),now_ms(),reduced);
+ c.rounded(int(tab_x.value(now_ms())),124,unsigned(tab_w.value(now_ms())),6,3,ink(0xd0ff9a));
+ if(tab_x.moving(now_ms())||tab_w.moving(now_ms()))animating=true;
+
+#ifdef PROSPERO_TOOLKIT
+ c.begin_content();
+#endif
+#ifdef PROSPERO_TOOLKIT
+ auto& list=prospero_ui::surface->list;bool moving=page!=7&&page_turn.moving(now_ms())&&std::strcmp(fields[30].data(),"ON")!=0;
+ prospero_ui::paging=moving;list.push_clip({0,155,1920,850});
+ bool opening=(page==4||page==0)&&card_open.moving(now_ms())&&std::strcmp(fields[30].data(),"ON")!=0;
+ if(page==9){
+  swap_selector(selector_base);prospero_ui::outgoing=true;compose_content(c);prospero_ui::outgoing=false;swap_selector(selector_base);
+  list.pop_clip();compose_content(c);list.push_clip({0,155,1920,850});
+ }else if(page==10||page==13){
+  bool theme_preview=page==10&&number(93)==8;float reveal=selector_reveal.value(now_ms());if(selector_reveal.moving(now_ms()))animating=true;
+  swap_selector(selector_base);prospero_ui::outgoing=true;compose_content(c);prospero_ui::outgoing=false;swap_selector(selector_base);
+  if(selector_depth==2){list.pop_clip();list.rounded_rect({0,0,1920,1080},0,prospero_ui::themed(0x000000,0.55f));list.push_clip({0,155,1920,850});swap_selector(selector_parent);prospero_ui::outgoing=true;compose_content(c);prospero_ui::outgoing=false;swap_selector(selector_parent);}
+  list.pop_clip();if(!theme_preview)list.rounded_rect({0,0,1920,1080},0,prospero_ui::themed(0x000000,0.55f*reveal));list.push_clip({0,155,1920,850});
+  list.push_opacity(reveal);compose_content(c);list.pop_opacity();
+ }else if(opening){float t=card_open.progress(now_ms());animating=true;prospero_ui::paging=true;
+  float expansion=card_reverse?1-t:t,library_alpha=card_library_alpha(expansion);
+  if(library_alpha>0.001f){list.push_opacity(library_alpha);
+   if(!card_reverse){swap_page_fields();prospero_ui::outgoing=true;}
+   compose_content(c);
+   if(!card_reverse){prospero_ui::outgoing=false;swap_page_fields();}
+   list.pop_opacity();
+  }
+  auto rect=opening_card_rect(opening_slot,expansion);list.push_clip({rect.x,rect.y,rect.w,rect.h});float scale=rect.w/1920;
+  list.push_opacity(card_detail_alpha(expansion));list.push_transform(scale,0,0,rect.x,rect.y-155*scale);
+  if(card_reverse){swap_page_fields();prospero_ui::outgoing=true;}
+  compose_content(c);
+  if(card_reverse){prospero_ui::outgoing=false;swap_page_fields();}
+  list.pop_transform();list.pop_opacity();list.pop_clip();
+ }else if(moving){float t=page_turn.progress(now_ms());animating=true;
+  swap_page_fields();prospero_ui::outgoing=true;list.push_transform(1,0,0,-page_turn.direction*1920*t,0);compose_content(c);list.pop_transform();prospero_ui::outgoing=false;swap_page_fields();
+  list.push_transform(1,0,0,page_turn.direction*1920*(1-t),0);compose_content(c);list.pop_transform();
+ }else compose_content(c);
+ list.pop_clip();prospero_ui::paging=false;
+ if(page==0){int start=number(14),count=number(13);if(start>0)c.chevron(31,540,-1);if(start+8<count)c.chevron(1889,540,1);if(count>8){char paging[48];std::snprintf(paging,sizeof(paging),"%d / %d",start/8+1,(count+7)/8);label(c,915,885,paging,22,0x91ad9b);}}
+
+#else
+ if(page==9){swap_selector(selector_base);compose_content(c);swap_selector(selector_base);}
+ compose_content(c);
+#endif
+
+#ifdef PROSPERO_TOOLKIT
+ c.end_content();
+#endif
+ if(page!=15&&std::strcmp(fields[64].data(),"BUSY")==0){
+  if(page==12&&fields[102][0])content_icon(c,78,924,46,fields[102].data());if(page!=3)title(c,page==12&&fields[102][0]?144:78,942,fields[2].data(),24,1230,0xaac8b2);label(c,1450,942,fields[21].data(),24,0xaac8b2);
+#ifdef PROSPERO_TOOLKIT
+  c.progress(number(20));
+#else
+  c.rounded(72,982,1770,5,2,ink(0x233c2c));if(number(20)>0)c.rounded(72,982,unsigned(1770*number(20)/1000),5,2,ink(0xa9eab6));
+#endif
+ }else if(page!=3&&page!=15&&page!=16)title(c,78,949,fields[2].data(),24,1760,0x83a58d);
+ control_label(c,76,1020,desktop.cursor?"Click Select    Right click / Esc Back    Arrows Navigate    Enter Confirm    Tab Pages    F1 Controls":fields[7].data(),20,0x7d9f89);label(c,1650,1020,PROSPERO_APP_VERSION,24,0x7d9f89);
+ runtime_footer(c);
+}
+#ifdef PROSPERO_TOOLKIT
+inline void draw_cursor(){
+  if(desktop.cursor){
+   // Same rounded Bezier silhouette at every layer; no sharp points.
+   static const CursorShape shape;
+   float xy[256];for(int i=0;i<shape.count;i++){xy[i*2]=desktop.x+shape.xy[i*2]-6;xy[i*2+1]=desktop.y+shape.xy[i*2+1];}
+   auto& list=prospero_ui::surface->list;list.polygon(xy,shape.count,prospero_ui::themed(0x81e6af));
+   // The kit's antialiased capsule strokes make one continuous rounded rim.
+   // Exactly two design colors: theme fill and light outline, with no shadow.
+   for(int i=0;i<shape.count;i++){int next=(i+1)%shape.count;list.line(xy[i*2],xy[i*2+1],xy[next*2],xy[next*2+1],3,prospero_ui::themed(0xeaf0e8));}
+  }
+}
+inline std::uint64_t toolkit_frame_time=0;
+inline void draw(ps5::demo::Canvas& output) noexcept {
+ if(prospero_ui::healthy){
+  auto time=now_ms();prospero_ui::dt=toolkit_frame_time?std::clamp(float(time-toolkit_frame_time)/1000.0f,0.001f,0.05f):1.0f/60;toolkit_frame_time=time;
+  prospero_ui::reduced=std::strcmp(fields[30].data(),"ON")==0;
+  prospero_ui::surface->list.clear();Canvas canvas;compose(canvas);
+  draw_cursor();
+  prospero_ui::healthy=prospero_ui::surface->render();
+  if(prospero_ui::healthy){auto* pixels=static_cast<const std::uint32_t*>(prospero_ui::surface->pixels);
+   prospero_ui::healthy=output.blit_rgba({pixels,1920*1080});
+   return;
+  }
+ }
+ output.clear(ps5::demo::Color::background);output.label(100,350,"Vulkan launcher unavailable. Game launch is blocked.",36,ink(0xeaf0e8));
+ output.label(100,430,"Keep open for logs, then close and reinstall the preserved086 candidate.",24,ink(0xa9eab6));
+}
+#else
+inline void draw(ps5::demo::Canvas& output) noexcept {compose(output);}
+#endif
+inline void pointer_input(int x,int y,bool click)noexcept{
+  if(page_turn.moving(now_ms())||card_open.moving(now_ms()))return;
+  int page=number(11);auto hit=desktop_hit(page,x,y,page==0?number(14):number(84),page==0?number(13):page==12?number(93):number(83),layout_slide,std::strcmp(fields[71].data(),"OFFLINE")==0,std::strcmp(fields[103].data(),"INSTALLED")==0,std::strcmp(fields[82].data(),"Shaders")==0,std::strcmp(fields[71].data(),"LOCAL")==0);
+if(page==0&&y>=495&&y<585){if(x>=5&&x<58&&number(14)>0)hit={5,0};if(x>=1862&&x<1915&&number(14)+8<number(13))hit={5,1};}
+#ifdef PROSPERO_TOOLKIT
+  if(page_turn.moving(now_ms()))hit={};
+  if(page==10||page==13){int index;if(page==10&&(number(93)==1||number(93)==2))index=icon_grid_hit(icon_grid(number(83)),x,y,number(83));else index=selection_menu_hit(menu_layout(),x,y,list_scroll.value(now_ms()),number(83));hit=index>=0?DesktopHit{3,index}:click?DesktopHit{4,3}:DesktopHit{};}
+
+#endif
+  if(page==6&&std::strcmp(fields[105].data(),"PHYSICAL")==0&&hit.kind==2)hit={};
+#ifdef PROSPERO_TOOLKIT
+  if(page==9&&prospero_ui::healthy){hui::ui::Canvas c{prospero_ui::surface->list,prospero_ui::surface->fonts,prospero_ui::surface->renderer.glass_texture(),prospero_ui::effects->clock};auto& dialog=prospero_ui::effects->dialog;auto r=dialog.panel_rect(c);float left=r.x+dialog.style.padding,yy=r.y+r.h-dialog.style.padding-dialog.style.button_height;float width=(r.w-2*dialog.style.padding-dialog.style.button_gap)/2;for(int i=0;i<2;i++)if(x>=left+i*(width+dialog.style.button_gap)&&x<left+i*(width+dialog.style.button_gap)+width&&y>=yy&&y<yy+dialog.style.button_height)hit={3,i};}
+#else
+  if(page==9&&y>=710+layout_slide&&y<786+layout_slide){if(x>=116&&x<896)hit={3,0};if(x>=970&&x<1750)hit={3,1};}
+#endif
+  if(hit.kind>=0&&(click||hit.kind!=pointer_kind||hit.target!=pointer_target||page!=pointer_page))push_input(pointer_command(page,hit.kind,hit.target,click));
+  pointer_kind=hit.kind;pointer_target=hit.target;pointer_page=page;
+}
+inline bool update() noexcept {
+ // The second update follows the initial submit/WaitVblank in run_ui_until.
+ if(++updates>=2)visible.store(true,std::memory_order_release);
+ unsigned pressed=0;PadSample batch[64]{};const int count=scePadRead(controller,batch,64);
+ const auto current_time=now_ms();bool connection_changed=false;
+ const int input_page=number(11);
+ const bool page_triggers=input_page==0||input_page==8||input_page==12;
+ if(count<0||count>64){pad_connected=false;navigation.clear();}
+ else for(int i=0;i<count;++i){
+  pad_connected=batch[i].connected&&!(batch[i].buttons&0x80000000u);
+  if(pad_generation!=batch[i].connection_generation){connection_changed=true;haptics.control(false,current_time);pad_generation=batch[i].connection_generation;}
+  if(!pad_connected)pressed=0;
+  const auto left=batch[i].l2,right=batch[i].r2;
+  const unsigned release=page_trigger_position(page_trigger_start_zone);
+  trigger_held=pad_connected?((left>=release?1u:0u)|(right>=release?2u:0u)):3u;
+  unsigned buttons=batch[i].buttons;
+  if(page_triggers)buttons=(buttons&~0x300u)|page_trigger_buttons(navigation.previous,left,right);
+  pressed|=navigation.sample(buttons,batch[i].lx,batch[i].ly,batch[i].connected,current_time);
+ }
+ unsigned repeated=navigation.repeat(current_time);if(std::strcmp(fields[105].data(),"PHYSICAL")!=0)pressed|=repeated;
+#ifdef PROSPERO_CHUNK_WORKER_TRIAL
+ if(chunk_trial_choice.load(std::memory_order_relaxed)==0){
+  if((pressed&0xa0)==0x80)chunk_trial_focus=3;
+  if((pressed&0xa0)==0x20)chunk_trial_focus=5;
+  if(pressed&0x4000)chunk_trial_choice.store(chunk_trial_focus,std::memory_order_release);
+  return (pressed&0x40a0)!=0;
+ }
+#endif
+ if(pressed&0x4000)pressed_at=current_time;
+ if(pressed){desktop.cursor=false;pointer_kind=-1;}
+ push_input(pressed);
+ bool desktop_changed=desktop.poll(current_time,[](unsigned command){push_input(command);},pointer_input);
+ if(pressed&0xf00){page_direction=(pressed&0xa00)?1:-1;page_direction_at=now_ms();}
+ bool changed=false;
+ if(!online.load(std::memory_order_acquire)){
+  if(pressed&0x400){std::snprintf(fields[12].data(),512,"%d",(number(12)+2)%3);std::snprintf(fields[28].data(),512,"TOP");changed=true;}
+  if(pressed&0x800){std::snprintf(fields[12].data(),512,"%d",(number(12)+1)%3);std::snprintf(fields[28].data(),512,"TOP");changed=true;}
+ }else{
+  pthread_mutex_lock(&mailbox);changed=fields!=published;
+  if(changed){
+   int before=number(11),after=std::atoi(published[11].data());
+   bool delete_dialog_change=before!=after&&(before==9||after==9);
+   if(delete_dialog_change&&after==9)selector_base.text=fields.text;
+   bool selector_change=before!=after&&(before==10||before==13||after==10||after==13);
+   if(before!=after&&(after==10||after==13)){if(before==13&&after==10){selector_parent.text=fields.text;selector_depth=2;}else if(!(before==10&&after==13)){selector_base.text=fields.text;selector_depth=1;}else selector_depth=1;selector_reveal.snap(before==10&&after==13?1:0);selector_reveal.duration=140;selector_reveal.to(1,now_ms(),std::strcmp(published[30].data(),"ON")==0);}
+   if(selector_change||delete_dialog_change){page_turn.enabled=false;card_open.enabled=false;focus.initialized=false;list_page=-1;}
+   bool opening=before==0&&after==4;
+   bool closing=(before==4||before==5)&&after==0&&std::strcmp(fields[12].data(),published[12].data())==0;
+   bool turn=!selector_change&&!delete_dialog_change&&!opening&&!closing&&(before!=7&&after!=7)&&(before!=after||(before==0&&std::strcmp(fields[14].data(),published[14].data())!=0)||(before==8&&std::strcmp(fields[74].data(),published[74].data())!=0));
+   if(before==7||after==7){page_turn.enabled=false;focus.initialized=false;}
+   if(before!=after)card_open.enabled=false;
+   if(opening||closing){card_reverse=closing;outgoing_fields=fields;std::snprintf(outgoing_fields[9].data(),512,"%s",published[9].data());opening_slot=std::clamp(std::atoi(published[9].data())-std::atoi((closing?published:fields)[14].data()),0,7);card_open.start(1,now_ms(),std::strcmp(published[30].data(),"ON")==0);page_turn.enabled=false;focus.initialized=false;}
+   if(turn){int a=before==0&&after==0?number(14):before==8&&after==8?number(74):number(12)*20+before;
+    int b=before==0&&after==0?std::atoi(published[14].data()):before==8&&after==8?std::atoi(published[74].data()):std::atoi(published[12].data())*20+after;
+    outgoing_fields=fields;page_turn.start(now_ms()-page_direction_at<400&&((before==0&&after==0)||std::strcmp(fields[12].data(),published[12].data())!=0)?page_direction:(b>=a?1:-1),now_ms(),std::strcmp(published[30].data(),"ON")==0);focus.initialized=false;list_page=-1;
+   }fields=published;cache_scroll_rows();
+  }
+  pthread_mutex_unlock(&mailbox);
+ }
+ if(!pad_connected||connection_changed)pad_light_theme=-1;
+ if(pad_connected&&online.load(std::memory_order_acquire)&&!exit_requested.load()){
+  const int theme=std::clamp(number(104),0,5);
+  if(theme!=pad_light_theme){
+   const auto rgb=prospero_palette::controller_rgb[theme];
+   const std::uint8_t color[]={std::uint8_t(rgb>>16),std::uint8_t(rgb>>8),std::uint8_t(rgb),0};
+   pad_light_theme=theme;
+   if(scePadSetLightBar(controller,color)>=0)pad_light_owned=true;
+  }
+ }
+ bool vibration=online.load(std::memory_order_acquire)&&pad_connected&&!connection_changed&&current_time-navigation.last_sample<=250&&std::strcmp(fields[79].data(),"ON")==0&&!exit_requested.load();
+ haptics.control(vibration,current_time);
+ unsigned available=0;int current_page=number(11);
+ if(current_page==0)available=(number(14)>0?1u:0u)|(number(14)+8<number(13)?2u:0u);
+ else if(current_page==8)available=3;
+ else if(current_page==12&&std::strcmp(fields[64].data(),"BUSY")!=0)available=(number(84)>0?1u:0u)|(number(84)+4<number(83)?2u:0u);
+ haptics.page_ready(available,trigger_held);haptics.observe(unsigned(number(77)),fields[78].data(),vibration,current_time);
+ if(changed||desktop_changed||(pressed&0x4000)){component_motion_until=now_ms()+700;return true;}
+#ifdef PROSPERO_TOOLKIT
+ if(prospero_ui::healthy)return true; // VideoOut vblank owns pacing, including the animated backdrop.
+#endif
+ return (animating||page_turn.moving(now_ms())||card_open.moving(now_ms())||list_scroll.moving(now_ms()))&&now_ms()-last_draw_time>=16;
+
+}
+inline bool stop() noexcept{bool value=exit_requested.load(std::memory_order_acquire);if(value)haptics.control(false,now_ms());return value;}
+inline void* ui_main(void*) noexcept {
+ pad_connected=false;pad_generation=0;pad_light_theme=-1;pad_light_owned=false;
+ (void)haptics.start(controller);
+#ifdef PROSPERO_TOOLKIT
+ extern void initialize_toolkit_graphics();initialize_toolkit_graphics();
+ #ifndef PROSPERO_TOOLKIT_FONT_DIR
+#define PROSPERO_TOOLKIT_FONT_DIR "/app0/assets/java25/launcher-toolkit/assets/fonts"
+#endif
+ prospero_ui::open(PROSPERO_TOOLKIT_FONT_DIR);
+#endif
+ const bool closed=ps5::demo::run_ui_until(draw,update,stop,"");
+#ifdef PROSPERO_TOOLKIT
+ const bool gpu_closed=prospero_ui::close();
+#else
+ const bool gpu_closed=true;
+#endif
+ desktop.close();haptics.close();
+ if(pad_light_owned)(void)scePadResetLightBar(controller);
+ scePadClose(controller);controller=-1;
+ std::fprintf(stderr,"PS5_UI handoff display_closed=%d gpu_closed=%d\n",int(closed),int(gpu_closed));
+ display_ok.store(closed&&gpu_closed,std::memory_order_release);display_done.store(true,std::memory_order_release);return nullptr;
+}
+inline bool start_frontend() noexcept {
+ visible=false;online=false;exit_requested=false;display_done=false;display_ok=false;
+ desktop=DesktopInput{};pointer_kind=pointer_target=pointer_page=-1;
+ selector_depth=0;selector_reveal.snap(1);page_turn={};card_open={};opening_slot=0;card_reverse=false;list_scroll={};tab_x={};tab_w={};tabs_ready=false;library_bar.snap(0);page_direction=1;page_direction_at=0;trigger_held=0;list_page=-1;updates=0;navigation.clear();pressed_at=0;focus={};transition_start=now_ms();animating=false;event_read=event_write=0;fields={};published={};
+ const char* boot[]={"Instances","","Starting the Java runtime...","","","Not signed in","","","PREPARING","0","WAIT","0"};
+ for(int i=0;i<12;++i)std::snprintf(fields[i].data(),512,"%s",boot[i]);
+ std::int32_t user=-1;if(sceUserServiceGetInitialUser(&user)<0)return false;controller=scePadOpen(user,0,0,nullptr);if(controller<0)return false;
+ pthread_attr_t attrs;
+ if(pthread_attr_init(&attrs)!=0){scePadClose(controller);controller=-1;return false;}
+ int created=pthread_attr_setstacksize(&attrs,2*1024*1024);
+ if(created==0)created=pthread_create(&ui_thread,&attrs,ui_main,nullptr);
+ pthread_attr_destroy(&attrs);
+ if(created!=0){scePadClose(controller);controller=-1;return false;}
+ while(!visible.load(std::memory_order_acquire)&&!display_done.load(std::memory_order_acquire))(void)sceKernelUsleep(1000);
+ return visible.load(std::memory_order_acquire)&&!display_done.load(std::memory_order_acquire)
+#ifdef PROSPERO_TOOLKIT
+ &&prospero_ui::healthy
+#endif
+ ;
+}
+inline void show_failure() noexcept {
+ Fields text{};
+ // Do not touch UI-owned fields: supply a complete independent failure state.
+ const char* boot[]={"Your next world.","Starts right here.","Account services could not start. Keep app open for startup logs.","","","Not signed in","STARTUP FAILED","Close and reopen after collecting the startup report","STARTUP FAILED","0","WAIT","0"};
+ for(int i=0;i<12;++i)std::snprintf(text[i].data(),512,"%s",boot[i]);publish(text);online.store(true,std::memory_order_release);
+}
+#ifdef PROSPERO_LIBRARY_PROGRESS
+inline jboolean library_progress(JNIEnv* env,jclass,jstring phase,jlong done,jlong total) noexcept {
+ const char* text=env->GetStringUTFChars(phase,nullptr);
+ if(!text)return JNI_FALSE;
+ const bool migrating=std::strcmp(text,"Scanning your library")==0||std::strcmp(text,"Moving your library")==0||
+     std::strcmp(text,"Verifying your library")==0||std::strcmp(text,"Checking copied files")==0||
+     std::strcmp(text,"Finishing library move")==0;
+ Fields state{};
+ std::snprintf(state[0].data(),512,"Instances");
+ std::snprintf(state[2].data(),512,"%s",text);
+ if(migrating)std::snprintf(state[7].data(),512,"CIRCLE  Pause and use original library");
+ if(total>0){
+  const int value=int(std::clamp(double(done)/double(total),0.0,1.0)*1000);
+  std::snprintf(state[20].data(),512,"%d",value);
+  std::snprintf(state[21].data(),512,"MEASURED");
+ }
+ std::snprintf(state[8].data(),512,"PREPARING");
+ env->ReleaseStringUTFChars(phase,text);
+ publish(state);
+ online.store(true,std::memory_order_release);
+ bool paused=false;
+ for(unsigned event=take_input();event;event=take_input())
+  if((event&0xffff0000u)==0&&(event&0x2000u))paused=true;
+ return !(migrating&&paused);
+}
+#endif
+inline jboolean menu(JNIEnv* env,jclass owner){
+ const jmethodID tick=env->GetStaticMethodID(owner,"launcherTick","(I)[Ljava/lang/String;");if(!tick)return false;
+ bool launch=false,failed=false;
+ while(!launch&&!failed&&!display_done.load(std::memory_order_acquire)){
+  auto array=static_cast<jobjectArray>(env->CallStaticObjectMethod(owner,tick,static_cast<jint>(take_input())));
+  if(env->ExceptionCheck()||!array){failed=true;break;}
+  Fields next{};
+  if(env->GetArrayLength(array)!=111){env->DeleteLocalRef(array);failed=true;break;}
+  for(int i=0;i<111;++i){auto value=static_cast<jstring>(env->GetObjectArrayElement(array,i));if(!value){failed=true;break;}const char* bytes=env->GetStringUTFChars(value,nullptr);if(!bytes){env->DeleteLocalRef(value);failed=true;break;}std::snprintf(next[i].data(),next[i].size(),"%s",bytes);env->ReleaseStringUTFChars(value,bytes);env->DeleteLocalRef(value);}
+  env->DeleteLocalRef(array);if(failed)break;
+  publish(next);online.store(true,std::memory_order_release);
+  launch=std::strcmp(next[10].data(),"LAUNCH")==0;
+  if(!launch)(void)sceKernelUsleep(16000);
+ }
+ exit_requested.store(true,std::memory_order_release);
+ while(!display_done.load(std::memory_order_acquire))(void)sceKernelUsleep(1000);
+ pthread_join(ui_thread,nullptr);
+ return display_ok.load(std::memory_order_acquire)&&launch&&!failed&&!env->ExceptionCheck();
+}
+}

@@ -1,0 +1,119 @@
+{
+  "app_version": "01.000.288",
+  "title_id": "PPSA99874",
+  "package_sha256": "e2e931fcabe01d9b8a4dd95bb03a55c4db1f611a074decbba5787b71b08b7766",
+  "date": "2026-11-19",
+  "console_acceptance": "The maintainer reports that the delivered mod-toggle candidate works well on PS5.",
+  "shader_confirmation": "The maintainer explicitly confirms shaders work on build 288.",
+  "publication": "The maintainer explicitly requests a ProsperoStore release of the exact tested build. GitHub release and Store submission are authorized.",
+  "matching_build_source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+  "release_source_commit": "3af11be2c984bfc3dcf230f9c60e22c214f687f9",
+  "release": "https://github.com/mateo-cogeanu/ProsperoCraft/releases/tag/01.000.288",
+  "source_files": [
+    {
+      "path": "LICENSE",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "bytes": 35149,
+      "git_mode": "100644"
+    },
+    {
+      "path": "NOTICE",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "d17976ded413ab95705a32642464fa6e9578d175a1ab490651dbcf45d55a0046",
+      "bytes": 4300,
+      "git_mode": "100644"
+    },
+    {
+      "path": "client/launcher/java/ProsperoLauncher.java",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "e21b1d9c7d71513a5e9dd3b44870696f149a4d4be4726018db9576661b6c380f",
+      "bytes": 64576,
+      "git_mode": "100644"
+    },
+    {
+      "path": "client/launcher/java/ProsperoModrinth.java",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "1617278bcd5906719ab9468abefde61fde78c92556ad2ce271b33acc56e60983",
+      "bytes": 35308,
+      "git_mode": "100644"
+    },
+    {
+      "path": "client/launcher/java/ProsperoWeb.java",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "9718c8ff20cd93b77c0d04f037a0ea17107c63306c9a128444f606e8da5e1e97",
+      "bytes": 22654,
+      "git_mode": "100644"
+    },
+    {
+      "path": "client/startup/ClientStartup25.java",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "c6be029a1513c4090a6fa589288a2f9d3e91d051350e8337f092007e95ec73ba",
+      "bytes": 35286,
+      "git_mode": "100644"
+    },
+    {
+      "path": "tools/audit_client_121.py",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "341d8fd770a2c3c7797af91e37e7d3af7d8e6b986ac7bc9535c8e5b7020c7aa1",
+      "bytes": 31853,
+      "git_mode": "100644"
+    },
+    {
+      "path": "tools/package_client_121.py",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "26dcc7362caca5c449a102d9193033d8ccb0d39732dcef21e515a9da609f7848",
+      "bytes": 42838,
+      "git_mode": "100644"
+    },
+    {
+      "path": "tools/test_fabric_dependencies.py",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "612ae27240285ed1e2e0600d06570268d2540a7195c2bfa8016161d403b160fa",
+      "bytes": 28776,
+      "git_mode": "100644"
+    },
+    {
+      "path": "tools/test_launcher_content.py",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "75d2d58eecf336b1c445f65c18638cff9919e7dde67dbeadabb256ec4ec8e991",
+      "bytes": 24012,
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/client-mod-toggle-288.md",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "4474b8548af4a44da36a6e2e4214044fbf07a50e1243d666fa85f2a3ca35d2f3",
+      "bytes": 1874,
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/validation/client288-mod-toggle-2026-11-19.json",
+      "source_commit": "95ee2cca26100c327909d9e05f902d1c2ecf4105",
+      "sha256": "7921d0592d6d6955ec72180bc04be4cddbdd5c8de6ccb7517d18c67107f94cec",
+      "bytes": 1886,
+      "git_mode": "100644"
+    },
+    {
+      "path": "sce_sys/param.json",
+      "source_commit": "3af11be2c984bfc3dcf230f9c60e22c214f687f9",
+      "sha256": "1cb15aaa498078bc6fcd5f9cc6eac0bdaa87368230e4f381ce6a1d072bd9083b",
+      "bytes": 851,
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/releases/client-mod-toggle-288.md",
+      "source_commit": "3af11be2c984bfc3dcf230f9c60e22c214f687f9",
+      "sha256": "a3b105b05446c47f55fd0fd8dfc4edeae4abad2ece37ae0784a901cd8faaac31",
+      "bytes": 715,
+      "git_mode": "100644"
+    },
+    {
+      "path": "docs/validation/client288-console-acceptance-2026-11-19.json",
+      "source_commit": "3af11be2c984bfc3dcf230f9c60e22c214f687f9",
+      "sha256": "aeaf5b5f6afdbfe9cc01904de8f197a985cfa3404952afc1cb9dd84ac18b3e50",
+      "bytes": 530,
+      "git_mode": "100644"
+    }
+  ]
+}
